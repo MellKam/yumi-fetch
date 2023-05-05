@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "start": "tsx main.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "yumi-fetch": "workspace:*",
+    "tsx": "3.12.7"
+  }
+}
