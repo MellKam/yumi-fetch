@@ -1,4 +1,14 @@
-import { yumi } from "yumi-fetch";
+import {
+  YumiFetch,
+  defaultDeserializers,
+  defaultSerializers,
+} from "yumi-fetch";
+
+const yumi = new YumiFetch({
+  baseURL: "https://jsonplaceholder.typicode.com/",
+  deserializers: defaultDeserializers,
+  serializers: defaultSerializers,
+});
 
 type Post = {
   id: number;
@@ -13,14 +23,14 @@ type CreatePostDTO = {
   userId: number;
 };
 
-const post = await yumi
-  .post<CreatePostDTO>("https://jsonplaceholder.typicode.com/posts", {
+const createdPost = await yumi
+  .post<CreatePostDTO>("/posts", {
     json: {
       title: "foo",
-      body: "bar",
+      body: "safasdd",
       userId: 2,
     },
   })
   .json<Post>();
 
-console.log(post);
+console.log(createdPost);

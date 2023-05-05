@@ -1,3 +1,16 @@
+const CONTENT_TYPES = {
+  JSON: "application/json",
+  URLENCODED: "application/x-www-form-urlencoded",
+  FORM_DATA: "multipart/form-data",
+  TEXT: "text/*",
+  ANY: "*/*",
+} as const;
+
+const HEADERS = {
+  ACCEPT: "Accept",
+  CONTENT_TYPE: "Content-Type",
+} as const;
+
 export type SearchParam =
   | string
   | number
@@ -21,158 +34,212 @@ export interface JSONObject {
 
 type AnyAsyncFunc = (...args: any[]) => Promise<any>;
 
-type ResponseSerializer<T extends AnyAsyncFunc> = (
+/**
+ * Response deserializer function
+ */
+export type Deserializer<T extends AnyAsyncFunc = AnyAsyncFunc> = (
   req: Request,
-  promise: Promise<Response>
+  fetch: Promise<Response>
 ) => T;
 
-interface DefaultSerializers
-  extends Record<string, ResponseSerializer<() => Promise<any>>> {
-  json: ResponseSerializer<<T extends JSONValue>() => Promise<T>>;
-  text: ResponseSerializer<() => Promise<string>>;
-  blob: ResponseSerializer<() => Promise<Blob>>;
-  arrayBuffer: ResponseSerializer<() => Promise<ArrayBuffer>>;
-  formData: ResponseSerializer<() => Promise<FormData>>;
+type DeserializersObject = Record<string, Deserializer>;
 
-  void: ResponseSerializer<() => Promise<void>>;
+export interface DefaultDeserializers extends DeserializersObject {
+  json: Deserializer<<T extends JSONValue>() => Promise<T>>;
+  text: Deserializer<() => Promise<string>>;
+  blob: Deserializer<() => Promise<Blob>>;
+  arrayBuffer: Deserializer<() => Promise<ArrayBuffer>>;
+  formData: Deserializer<() => Promise<FormData>>;
+
+  void: Deserializer<() => Promise<void>>;
 }
 
-const defaultSerializers: DefaultSerializers = {
+export const defaultDeserializers: DefaultDeserializers = {
   json:
-    (req: Request, res: Promise<Response>) =>
+    (req: Request, fetch: Promise<Response>) =>
     async <T extends JSONValue>() => {
-      req.headers.set("accept", "application/json");
-      return (await (await res).json()) as Promise<T>;
+      req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.JSON);
+      return await fetch.then((res) => res.json() as Promise<T>);
     },
   text: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set("accept", "text/*");
+    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.TEXT);
     return await (await res).text();
   },
   blob: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set("accept", "*/*");
+    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
     return await (await res).blob();
   },
   arrayBuffer: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set("accept", "*/*");
+    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
     return await (await res).arrayBuffer();
   },
   formData: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set("accept", "*/*");
+    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
     return await (await res).formData();
   },
   void: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set("accept", "*/*");
+    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
     await (await res).body?.cancel();
   },
 };
 
-type SerializersToMethods<
-  S extends Record<string, ResponseSerializer<AnyAsyncFunc>>
-> = {
-  [K in keyof S]: ReturnType<S[K]>;
+type UnwrapDeserializers<T extends DeserializersObject> = {
+  [K in keyof T]: ReturnType<T[K]>;
 };
 
-type ResponsePromise<
-  T extends Record<string, ResponseSerializer<AnyAsyncFunc>>
-> = Promise<Response> & SerializersToMethods<T>;
+type ResponsePromise<T extends DeserializersObject> = Promise<Response> &
+  UnwrapDeserializers<T>;
 
-interface YumiRequestInit<T extends JSONValue = JSONValue> extends RequestInit {
-  // params?: URLSearchParams | SearchParams | string;
-  json?: T;
+// can throw errro
+export type Serializer = (data: any, headers: Headers) => BodyInit;
+type SerializersObject = Record<string, Serializer>;
+
+export interface DefaultSerializers extends SerializersObject {
+  json: (data: JSONValue, headers: Headers) => string;
+  params: (data: SearchParams) => URLSearchParams;
 }
+
+export const defaultSerializers: DefaultSerializers = {
+  json: (data: JSONValue, headers) => {
+    headers.append(HEADERS.CONTENT_TYPE, CONTENT_TYPES.JSON);
+    return JSON.stringify(data);
+  },
+  params: (data: SearchParams) => {
+    const params = new URLSearchParams();
+    for (const key in data) {
+      const value = data[key];
+      if (value === undefined) continue;
+      params.set(key, value.toString());
+    }
+    return params;
+  },
+};
+
+type UnwrapSerializers<T extends SerializersObject> = {
+  [K in keyof T]?: Parameters<T[K]>[0];
+};
+
+const mergeHeaders = (h1: HeadersInit, h2: HeadersInit) => {
+  const result = new Headers(h1);
+  new Headers(h2).forEach((value, key) => {
+    result.set(key, value);
+  });
+  return result;
+};
+
+type YumiRequestInit<
+  TSerializers extends SerializersObject = DefaultSerializers,
+  TJSON extends JSONValue = JSONValue,
+  TParams extends SearchParams = SearchParams
+> = RequestInit &
+  UnwrapSerializers<TSerializers> & {
+    params?: TParams;
+    json?: TJSON;
+  };
 
 export class YumiFetch<
-  TCustomSerializers extends Record<string, ResponseSerializer<AnyAsyncFunc>>,
-  TSerializers extends DefaultSerializers &
-    TCustomSerializers = DefaultSerializers & TCustomSerializers
+  TDeserializers extends DeserializersObject,
+  TSerializers extends DefaultSerializers
 > {
+  private deserializers: TDeserializers;
   private serializers: TSerializers;
+
   constructor(
-    private baseURL?: string | URL,
-    customSerializers?: TCustomSerializers
+    private opts: {
+      baseURL?: string | URL;
+      headers?: HeadersInit;
+      deserializers?: TDeserializers;
+      serializers: TSerializers;
+    }
   ) {
-    this.serializers = {
-      ...defaultSerializers,
-      ...customSerializers,
-    } as TSerializers;
+    this.deserializers = this.opts.deserializers ?? ({} as TDeserializers);
+    this.serializers = this.opts.serializers ?? ({} as TSerializers);
   }
 
-  fetch<T extends JSONValue>(
-    input: URL | RequestInfo,
-    init: YumiRequestInit<T> = {}
+  fetch<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
+    path: string,
+    init: YumiRequestInit<TSerializers, T, U> = {}
   ) {
-    let req: Request;
-    const headers = {} as Record<string, string>;
+    const headers =
+      init.headers && this.opts.headers
+        ? mergeHeaders(this.opts.headers, init.headers)
+        : new Headers(init.headers || this.opts.headers);
 
-    if (init.json) {
-      init.body = JSON.stringify(init.json);
-      headers["Content-Type"] = "application/json";
+    const url = new URL(path, this.opts.baseURL);
+    if (init.params) {
+      const params = this.serializers.params(init.params);
+      if (init.body === null) {
+        init.body = params;
+      } else {
+        url.search = params.toString();
+      }
     }
 
-    if (init.headers) {
-      init.headers = { ...init.headers, ...headers };
-    } else {
-      init.headers = headers;
+    if (!init.body) {
+      for (const key in this.serializers) {
+        if (key === "params") continue;
+        if (init[key]) {
+          init.body = this.serializers[key](init[key], headers);
+        }
+      }
     }
 
-    if (typeof input === "string") {
-      const url = new URL(input, this.baseURL);
-      req = new Request(url, init);
-    } else if (input instanceof URL) {
-      req = new Request(input, init);
-    } else {
-      req = new Request(input, init);
+    init.headers = headers;
+
+    const req = new Request(url, init);
+    const responsePromise = fetch(req) as ResponsePromise<TDeserializers>;
+
+    for (const key in this.deserializers) {
+      (responsePromise[key] as AnyAsyncFunc) = this.deserializers[key](
+        req,
+        responsePromise
+      );
     }
 
-    const promise = new Promise<Response>((resolve, reject) => {
-      fetch(req).then(resolve, reject);
-    }) as ResponsePromise<TSerializers>;
-
-    for (const key in this.serializers) {
-      promise[key] = this.serializers[key](req, promise) as any;
-    }
-
-    return promise;
+    return responsePromise;
   }
 
-  get<T extends JSONValue>(
-    input: URL | RequestInfo,
-    init: Omit<YumiRequestInit<T>, "method"> = {}
+  get<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
+    path: string,
+    init: YumiRequestInit<TSerializers, T, U> = {}
   ) {
-    return this.fetch(input, init);
+    return this.fetch(path, init);
   }
 
-  post<T extends JSONValue>(
-    input: URL | RequestInfo,
-    init: Omit<YumiRequestInit<T>, "method"> = {}
+  post<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
+    path: string,
+    init: YumiRequestInit<TSerializers, T, U> = {}
   ) {
     (init as YumiRequestInit).method = "POST";
-    return this.fetch(input, init);
+    return this.fetch(path, init);
   }
 
-  delete<T extends JSONValue>(
-    input: URL | RequestInfo,
-    init: Omit<YumiRequestInit<T>, "method"> = {}
-  ) {
+  delete<
+    T extends JSONValue = JSONValue,
+    U extends SearchParams = SearchParams
+  >(path: string, init: YumiRequestInit<TSerializers, T, U> = {}) {
     (init as YumiRequestInit).method = "DELETE";
-    return this.fetch(input, init);
+    return this.fetch(path, init);
   }
 
-  patch<T extends JSONValue>(
-    input: URL | RequestInfo,
-    init: Omit<YumiRequestInit<T>, "method"> = {}
+  patch<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
+    path: string,
+    init: YumiRequestInit<TSerializers, T, U> = {}
   ) {
     (init as YumiRequestInit).method = "PATCH";
-    return this.fetch(input, init);
+    return this.fetch(path, init);
   }
 
-  put<T extends JSONValue>(
-    input: URL | RequestInfo,
-    init: Omit<YumiRequestInit<T>, "method"> = {}
+  put<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
+    path: string,
+    init: YumiRequestInit<TSerializers, T, U> = {}
   ) {
     (init as YumiRequestInit).method = "PUT";
-    return this.fetch(input, init);
+    return this.fetch(path, init);
   }
 }
 
-export const yumi = new YumiFetch();
+export const yumi = new YumiFetch({
+  deserializers: defaultDeserializers,
+  serializers: defaultSerializers,
+});
