@@ -1,10 +1,16 @@
 {
   "name": "yumi-fetch",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "description": "Extensible fetch wrapper 🍭",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "type": "module",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "src/",
+    "package.json"
+  ],
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly --declaration"
   },
@@ -12,5 +18,23 @@
     "prettier": "2.8.8",
     "typescript": "5.0.4",
     "vite": "4.3.4"
-  }
+  },
+  "author": {
+    "name": "Artem Melnyk",
+    "url": "https://github.com/MellKam"
+  },
+  "packageManager": "pnpm@8.4.0",
+  "license": "MIT",
+  "repository": "github:MellKam/yumi-fetch",
+  "readme": "https://github.com/MellKam/yumi-fetch#readme",
+  "bugs": {
+    "url": "https://github.com/MellKam/yumi-fetch/issues"
+  },
+  "keywords": [
+    "fetch",
+    "http",
+    "request",
+    "yumi",
+    "http client"
+  ]
 }
