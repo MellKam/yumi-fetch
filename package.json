@@ -1,0 +1,19 @@
+{
+  "name": "yumi-fetch",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "vite build && tsc --emitDeclarationOnly --declaration"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "prettier": "2.8.8",
+    "typescript": "5.0.4",
+    "vite": "4.3.4"
+  }
+}

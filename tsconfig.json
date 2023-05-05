@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noEmitOnError": true,
+    "noImplicitReturns": true,
+    "noUnusedParameters": true,
+    "strict": true,
+    "lib": [
+      "DOM",
+      "ESNext",
+      "DOM.Iterable",
+    ],
+    "noUnusedLocals": true,
+    "moduleResolution": "node",
+    "module": "ESNext",
+    "target": "ESNext",
+    "outDir": "dist",
+    "baseUrl": ".",
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "5.0",
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false
+  },
+  "include": [
+    "./src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+  ]
+}
