@@ -1,0 +1,4 @@
+{
+  "deno.enablePaths": ["examples/basic"],
+  "deno.unstable": true
+}

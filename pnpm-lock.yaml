@@ -19,6 +19,9 @@ importers:
       tsx:
         specifier: 3.12.7
         version: 3.12.7
+      wretch:
+        specifier: 2.5.2
+        version: 2.5.2
       yumi-fetch:
         specifier: workspace:*
         version: link:../..
@@ -364,3 +367,8 @@ packages:
     optionalDependencies:
       fsevents: 2.3.2
     dev: true
+
+  /wretch@2.5.2:
+    resolution: {integrity: sha512-6Pd1GvoNYzf17WH1jggzsq8E00UQqiO0kJvLS1dmIEnX8IE0zBfd77Sid5IqTGYVKhad88ygTudbvHdsvPvmCA==}
+    engines: {node: '>=14'}
+    dev: false

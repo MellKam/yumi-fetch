@@ -137,37 +137,58 @@ type YumiRequestInit<
     json?: TJSON;
   };
 
-export class YumiFetch<
+type Method = "get" | "post" | "put" | "delete" | "patch";
+
+type YumiMethdos<
   TDeserializers extends DeserializersObject,
   TSerializers extends DefaultSerializers
-> {
-  private deserializers: TDeserializers;
-  private serializers: TSerializers;
+> = {
+  [K in Method]: <
+    T extends JSONValue = JSONValue,
+    U extends SearchParams = SearchParams
+  >(
+    path: string,
+    init?: Omit<YumiRequestInit<TSerializers, T, U>, "method">
+  ) => ResponsePromise<TDeserializers>;
+};
 
-  constructor(
-    private opts: {
-      baseURL?: string | URL;
-      headers?: HeadersInit;
-      deserializers?: TDeserializers;
-      serializers: TSerializers;
-    }
-  ) {
-    this.deserializers = this.opts.deserializers ?? ({} as TDeserializers);
-    this.serializers = this.opts.serializers ?? ({} as TSerializers);
-  }
+interface YumiInstance<
+  TDeserializers extends DeserializersObject,
+  TSerializers extends DefaultSerializers
+> extends YumiMethdos<TDeserializers, TSerializers> {
+  fetch: <
+    T extends JSONValue = JSONValue,
+    U extends SearchParams = SearchParams
+  >(
+    path: string,
+    init?: YumiRequestInit<TSerializers, T, U>
+  ) => ResponsePromise<TDeserializers>;
+}
 
-  fetch<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
+export const Yumi = <
+  TDeserializers extends DeserializersObject,
+  TSerializers extends DefaultSerializers
+>(opts: {
+  baseURL?: string;
+  headers?: HeadersInit;
+  deserializers: TDeserializers;
+  serializers: TSerializers;
+}) => {
+  const _fetch = <
+    T extends JSONValue = JSONValue,
+    U extends SearchParams = SearchParams
+  >(
     path: string,
     init: YumiRequestInit<TSerializers, T, U> = {}
-  ) {
+  ) => {
     const headers =
-      init.headers && this.opts.headers
-        ? mergeHeaders(this.opts.headers, init.headers)
-        : new Headers(init.headers || this.opts.headers);
+      init.headers && opts.headers
+        ? mergeHeaders(opts.headers, init.headers)
+        : new Headers(init.headers || opts.headers);
 
-    const url = new URL(path, this.opts.baseURL);
+    const url = new URL(path, opts.baseURL);
     if (init.params) {
-      const params = this.serializers.params(init.params);
+      const params = opts.serializers.params(init.params);
       if (init.body === null) {
         init.body = params;
       } else {
@@ -176,10 +197,10 @@ export class YumiFetch<
     }
 
     if (!init.body) {
-      for (const key in this.serializers) {
+      for (const key in opts.serializers) {
         if (key === "params") continue;
         if (init[key]) {
-          init.body = this.serializers[key](init[key], headers);
+          init.body = opts.serializers[key](init[key], headers);
         }
       }
     }
@@ -189,57 +210,38 @@ export class YumiFetch<
     const req = new Request(url, init);
     const responsePromise = fetch(req) as ResponsePromise<TDeserializers>;
 
-    for (const key in this.deserializers) {
-      (responsePromise[key] as AnyAsyncFunc) = this.deserializers[key](
+    for (const key in opts.deserializers) {
+      (responsePromise[key] as AnyAsyncFunc) = opts.deserializers[key](
         req,
         responsePromise
       );
     }
 
     return responsePromise;
+  };
+
+  const methods = {} as YumiMethdos<TDeserializers, TSerializers>;
+
+  for (const method of ["get", "post", "put", "delete", "patch"] as Method[]) {
+    methods[method] = <
+      T extends JSONValue = JSONValue,
+      U extends SearchParams = SearchParams
+    >(
+      path: string,
+      init?: Omit<YumiRequestInit<TSerializers, T, U>, "method">
+    ) => {
+      (init as YumiRequestInit).method = "POST";
+      return _fetch(path, init as YumiRequestInit);
+    };
   }
 
-  get<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
-    path: string,
-    init: YumiRequestInit<TSerializers, T, U> = {}
-  ) {
-    return this.fetch(path, init);
-  }
+  return {
+    fetch: _fetch,
+    ...methods,
+  } as YumiInstance<TDeserializers, TSerializers>;
+};
 
-  post<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
-    path: string,
-    init: YumiRequestInit<TSerializers, T, U> = {}
-  ) {
-    (init as YumiRequestInit).method = "POST";
-    return this.fetch(path, init);
-  }
-
-  delete<
-    T extends JSONValue = JSONValue,
-    U extends SearchParams = SearchParams
-  >(path: string, init: YumiRequestInit<TSerializers, T, U> = {}) {
-    (init as YumiRequestInit).method = "DELETE";
-    return this.fetch(path, init);
-  }
-
-  patch<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
-    path: string,
-    init: YumiRequestInit<TSerializers, T, U> = {}
-  ) {
-    (init as YumiRequestInit).method = "PATCH";
-    return this.fetch(path, init);
-  }
-
-  put<T extends JSONValue = JSONValue, U extends SearchParams = SearchParams>(
-    path: string,
-    init: YumiRequestInit<TSerializers, T, U> = {}
-  ) {
-    (init as YumiRequestInit).method = "PUT";
-    return this.fetch(path, init);
-  }
-}
-
-export const yumi = new YumiFetch({
+export const yumi = Yumi({
   deserializers: defaultDeserializers,
   serializers: defaultSerializers,
 });
