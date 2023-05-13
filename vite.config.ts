@@ -7,5 +7,10 @@ export default defineConfig({
       formats: ["cjs", "es"],
       fileName: "index",
     },
+    rollupOptions: {
+      output: {
+        exports: "named",
+      },
+    },
   },
 });

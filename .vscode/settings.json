@@ -1,4 +1,4 @@
 {
-  "deno.enablePaths": ["examples/basic"],
+  "deno.enablePaths": ["benchmarks"],
   "deno.unstable": true
 }
