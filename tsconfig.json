@@ -2,10 +2,13 @@
   "compilerOptions": {
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
+    "allowImportingTsExtensions": true,
     "noImplicitAny": true,
     "noEmitOnError": true,
     "noImplicitReturns": true,
     "noUnusedParameters": true,
+    "emitDeclarationOnly": true,
+    "declaration": true,
     "strict": true,
     "lib": [
       "DOM",
