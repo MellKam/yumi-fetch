@@ -1,247 +1,265 @@
-const CONTENT_TYPES = {
-  JSON: "application/json",
-  URLENCODED: "application/x-www-form-urlencoded",
-  FORM_DATA: "multipart/form-data",
-  TEXT: "text/*",
-  ANY: "*/*",
-} as const;
+import {
+  AnyAsyncFunc,
+  BODY_METHODS,
+  BodyMethod,
+  HTTP_METHODS,
+  HTTPError,
+  HTTPMethod,
+  JSONValue,
+  mergeHeaders,
+  ParamsSerializer,
+  paramsSerializer,
+  SearchParams,
+} from "./utils.ts";
 
-const HEADERS = {
-  ACCEPT: "Accept",
-  CONTENT_TYPE: "Content-Type",
-} as const;
+type FetchMiddleware = (next: FetchLike) => FetchLike;
 
-export type SearchParam =
-  | string
-  | number
-  | boolean
-  | readonly (string | number | boolean)[];
-export interface SearchParams {
-  [k: string]: SearchParam | undefined;
+interface ClientOptions<
+  S extends SerializersObject,
+  D extends DeserializersObject,
+  Q extends ParamsSerializer | undefined,
+> {
+  baseURL?: string | URL;
+  headers?: HeadersInit | Headers;
+  deserializers?: D;
+  serializers?: S;
+  // beforeRequest
+  // onError
+  // onSuccess
+  paramsSerializer?: Q;
+  middlewares?: FetchMiddleware[];
 }
 
-export type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | JSONArray
-  | JSONObject;
-export type JSONArray = JSONValue[];
-export interface JSONObject {
-  [x: string]: JSONValue | undefined;
-}
+type FetchLike = (req: Request) => Promise<Response>;
 
-type AnyAsyncFunc = (...args: any[]) => Promise<any>;
-
-/**
- * Response deserializer function
- */
-export type Deserializer<T extends AnyAsyncFunc = AnyAsyncFunc> = (
+type Deserializer<T extends AnyAsyncFunc = AnyAsyncFunc> = (
+  fetch: FetchLike,
   req: Request,
-  fetch: Promise<Response>
 ) => T;
-
 type DeserializersObject = Record<string, Deserializer>;
-
-export interface DefaultDeserializers extends DeserializersObject {
-  json: Deserializer<<T extends JSONValue>() => Promise<T>>;
-  text: Deserializer<() => Promise<string>>;
-  blob: Deserializer<() => Promise<Blob>>;
-  arrayBuffer: Deserializer<() => Promise<ArrayBuffer>>;
-  formData: Deserializer<() => Promise<FormData>>;
-
-  void: Deserializer<() => Promise<void>>;
-}
-
-export const defaultDeserializers: DefaultDeserializers = {
-  json:
-    (req: Request, fetch: Promise<Response>) =>
-    async <T extends JSONValue>() => {
-      req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.JSON);
-      return await fetch.then((res) => res.json() as Promise<T>);
-    },
-  text: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.TEXT);
-    return await (await res).text();
-  },
-  blob: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
-    return await (await res).blob();
-  },
-  arrayBuffer: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
-    return await (await res).arrayBuffer();
-  },
-  formData: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
-    return await (await res).formData();
-  },
-  void: (req: Request, res: Promise<Response>) => async () => {
-    req.headers.set(HEADERS.ACCEPT, CONTENT_TYPES.ANY);
-    await (await res).body?.cancel();
-  },
-};
-
 type UnwrapDeserializers<T extends DeserializersObject> = {
   [K in keyof T]: ReturnType<T[K]>;
 };
 
-type ResponsePromise<T extends DeserializersObject> = Promise<Response> &
-  UnwrapDeserializers<T>;
-
-// can throw errro
-export type Serializer = (data: any, headers: Headers) => BodyInit;
-type SerializersObject = Record<string, Serializer>;
-
-export interface DefaultSerializers extends SerializersObject {
-  json: (data: JSONValue, headers: Headers) => string;
-  params: (data: SearchParams) => URLSearchParams;
+interface DefaultDeserializers extends DeserializersObject {
+  json: () => <T extends JSONValue>() => Promise<T>;
+  text: () => () => Promise<string>;
+  arrayBuffer: () => () => Promise<ArrayBuffer>;
+  blob: () => () => Promise<Blob>;
+  formData: () => () => Promise<FormData>;
 }
 
-export const defaultSerializers: DefaultSerializers = {
-  json: (data: JSONValue, headers) => {
-    headers.append(HEADERS.CONTENT_TYPE, CONTENT_TYPES.JSON);
-    return JSON.stringify(data);
-  },
-  params: (data: SearchParams) => {
-    const params = new URLSearchParams();
-    for (const key in data) {
-      const value = data[key];
-      if (value === undefined) continue;
-      params.set(key, value.toString());
-    }
-    return params;
-  },
+const createDefaultDeserializers = () => {
+  const deserializers = {} as DefaultDeserializers;
+
+  for (const key in BODY_METHODS) {
+    deserializers[key] = (fetch, req) => async () => {
+      req.headers.set("Accept", BODY_METHODS[key as BodyMethod]);
+      return await fetch(req).then((res) => res[key as BodyMethod]());
+    };
+  }
+
+  return deserializers;
 };
 
+type Serializer = (data: any, headers: Headers) => BodyInit;
+type SerializersObject = Record<string, Serializer>;
 type UnwrapSerializers<T extends SerializersObject> = {
   [K in keyof T]?: Parameters<T[K]>[0];
 };
 
-const mergeHeaders = (h1: HeadersInit, h2: HeadersInit) => {
-  const result = new Headers(h1);
-  new Headers(h2).forEach((value, key) => {
-    result.set(key, value);
-  });
-  return result;
-};
-
-type YumiRequestInit<
-  TSerializers extends SerializersObject = DefaultSerializers,
-  TJSON extends JSONValue = JSONValue,
-  TParams extends SearchParams = SearchParams
-> = RequestInit &
-  UnwrapSerializers<TSerializers> & {
-    params?: TParams;
-    json?: TJSON;
-  };
-
-type Method = "get" | "post" | "put" | "delete" | "patch";
-
-type YumiMethdos<
-  TDeserializers extends DeserializersObject,
-  TSerializers extends DefaultSerializers
-> = {
-  [K in Method]: <
-    T extends JSONValue = JSONValue,
-    U extends SearchParams = SearchParams
-  >(
-    path: string,
-    init?: Omit<YumiRequestInit<TSerializers, T, U>, "method">
-  ) => ResponsePromise<TDeserializers>;
-};
-
-interface YumiInstance<
-  TDeserializers extends DeserializersObject,
-  TSerializers extends DefaultSerializers
-> extends YumiMethdos<TDeserializers, TSerializers> {
-  fetch: <
-    T extends JSONValue = JSONValue,
-    U extends SearchParams = SearchParams
-  >(
-    path: string,
-    init?: YumiRequestInit<TSerializers, T, U>
-  ) => ResponsePromise<TDeserializers>;
+interface DefaultSerializers extends SerializersObject {
+  json: (data: JSONValue, headers: Headers) => string;
 }
 
-export const Yumi = <
-  TDeserializers extends DeserializersObject,
-  TSerializers extends DefaultSerializers
->(opts: {
-  baseURL?: string;
-  headers?: HeadersInit;
-  deserializers: TDeserializers;
-  serializers: TSerializers;
-}) => {
-  const _fetch = <
-    T extends JSONValue = JSONValue,
-    U extends SearchParams = SearchParams
+const defaultSerializers: DefaultSerializers = {
+  json: (data, headers) => {
+    headers.set("Content-Type", BODY_METHODS.json);
+    return JSON.stringify(data);
+  },
+};
+
+type RequestOptions<
+  S extends SerializersObject,
+  Q extends ParamsSerializer | undefined,
+> =
+  & RequestInit
+  & UnwrapSerializers<S>
+  & (Q extends undefined ? {} : { query?: SearchParams });
+
+type RequestResource = Request | URL | string;
+
+type ClientMethods<
+  S extends SerializersObject,
+  D extends DeserializersObject,
+  Q extends ParamsSerializer | undefined,
+> = {
+  [Method in HTTPMethod]: (
+    resource: RequestResource,
+    options?: Exclude<RequestOptions<S, Q>, "method">,
+  ) => ResponsePromise<D>;
+};
+
+interface ClientBase<
+  S extends SerializersObject,
+  D extends DeserializersObject,
+  Q extends ParamsSerializer | undefined,
+> {
+  _url?: URL;
+  _headers: Headers;
+  _paramsSerializer: Q;
+  _middlewares: FetchMiddleware[];
+  _deserializers: D;
+  _serializers: S;
+  extend<
+    Serializers extends SerializersObject,
+    Deserializers extends DeserializersObject,
+    Query extends ParamsSerializer | undefined,
   >(
-    path: string,
-    init: YumiRequestInit<TSerializers, T, U> = {}
-  ) => {
-    const headers =
-      init.headers && opts.headers
-        ? mergeHeaders(opts.headers, init.headers)
-        : new Headers(init.headers || opts.headers);
+    options: ClientOptions<Serializers, Deserializers, Query>,
+  ): Client<
+    S & Serializers,
+    D & Deserializers,
+    Query extends undefined ? Q : Query
+  >;
+  fetch(
+    resource: RequestResource,
+    options?: RequestOptions<S, Q>,
+  ): ResponsePromise<D>;
+}
 
-    const url = new URL(path, opts.baseURL);
-    if (init.params) {
-      const params = opts.serializers.params(init.params);
-      if (init.body === null) {
-        init.body = params;
-      } else {
-        url.search = params.toString();
-      }
-    }
+interface Client<
+  S extends SerializersObject,
+  D extends DeserializersObject,
+  Q extends ParamsSerializer | undefined,
+> extends ClientBase<S, D, Q>, ClientMethods<S, D, Q> {}
 
-    if (!init.body) {
-      for (const key in opts.serializers) {
-        if (key === "params") continue;
-        if (init[key]) {
-          init.body = opts.serializers[key](init[key], headers);
-        }
-      }
-    }
+type ResponsePromise<D extends DeserializersObject> =
+  & Promise<Response>
+  & UnwrapDeserializers<D>;
 
-    init.headers = headers;
+const createResponsePromise = <D extends DeserializersObject>(
+  fetch: FetchLike,
+  req: Request,
+  deserializers: D,
+): ResponsePromise<D> => {
+  const promise = {
+    then(onfulfilled, onrejected) {
+      return fetch(req).then(onfulfilled, onrejected);
+    },
+    catch(onrejected) {
+      return fetch(req).then(null, onrejected);
+    },
+    finally(onfinally) {
+      return fetch(req).finally(onfinally);
+    },
+    [Symbol.toStringTag]: "ResponsePromise",
+  } as ResponsePromise<D>;
 
-    const req = new Request(url, init);
-    const responsePromise = fetch(req) as ResponsePromise<TDeserializers>;
+  for (const key in deserializers) {
+    promise[key] = deserializers[key](fetch, req) as any;
+  }
 
-    for (const key in opts.deserializers) {
-      (responsePromise[key] as AnyAsyncFunc) = opts.deserializers[key](
-        req,
-        responsePromise
-      );
-    }
+  return promise;
+};
 
-    return responsePromise;
+const linkMiddlewares =
+  (middlewares: FetchMiddleware[]) => (fetch: FetchLike): FetchLike => {
+    return middlewares.reduceRight((acc, curr) => curr(acc), fetch) || fetch;
   };
 
-  const methods = {} as YumiMethdos<TDeserializers, TSerializers>;
+const throwableFetch: FetchLike = async (req) => {
+  const res = await globalThis.fetch(req);
+  if (!res.ok) {
+    throw new HTTPError(req, res);
+  }
+  return res;
+};
 
-  for (const method of ["get", "post", "put", "delete", "patch"] as Method[]) {
-    methods[method] = <
-      T extends JSONValue = JSONValue,
-      U extends SearchParams = SearchParams
-    >(
-      path: string,
-      init?: Omit<YumiRequestInit<TSerializers, T, U>, "method">
-    ) => {
-      (init as YumiRequestInit).method = "POST";
-      return _fetch(path, init as YumiRequestInit);
+export const Client = <
+  S extends SerializersObject,
+  D extends DeserializersObject,
+  Q extends ParamsSerializer | undefined = undefined,
+>(opts: ClientOptions<S, D, Q> = {}) => {
+  const client = {
+    _url: opts.baseURL ? new URL(opts.baseURL) : undefined,
+    _headers: new Headers(opts.headers),
+    _paramsSerializer: opts.paramsSerializer,
+    _middlewares: opts.middlewares || [],
+    _deserializers: (opts.deserializers || {}) as D,
+    _serializers: (opts.serializers || {}) as S,
+    extend(options) {
+      return {
+        ...this,
+        _url: options.baseURL ? new URL(options.baseURL) : this._url,
+        _headers: mergeHeaders(this._headers, options.headers),
+        _deserializers: { ...this._deserializers, ...options.deserializers },
+        _serializers: { ...this._serializers, ...options.serializers },
+        _middlewares: [...this._middlewares, ...(options.middlewares || [])],
+      };
+    },
+    fetch(resource, options = {}) {
+      let req: Request;
+
+      if (resource instanceof Request) {
+        req = new Request(resource, options);
+      } else {
+        const url = typeof resource == "string"
+          ? new URL(resource, this._url)
+          : resource;
+
+        if (options.query && this._paramsSerializer) {
+          url.search = this._paramsSerializer(options.query).toString();
+        }
+
+        const headers = mergeHeaders(this._headers, options.headers);
+
+        let body = options.body;
+
+        if (!body && options.method !== "GET") {
+          for (const key in this._serializers) {
+            if (options[key]) {
+              body = this._serializers[key](
+                options[key],
+                headers,
+              );
+              break;
+            }
+          }
+        }
+
+        req = new Request(url, { ...options, headers, body });
+      }
+
+      const _fetch = this._middlewares.length
+        ? linkMiddlewares(this._middlewares)(throwableFetch)
+        : throwableFetch;
+
+      return createResponsePromise(
+        _fetch,
+        req,
+        this._deserializers,
+      );
+    },
+  } as ClientBase<S, D, Q>;
+
+  for (const method of HTTP_METHODS) {
+    (client as Client<S, D, Q>)[method] = function (
+      resourse,
+      options,
+    ) {
+      (options as RequestOptions<S, Q>).method = method;
+      return this.fetch(resourse, options);
     };
   }
 
-  return {
-    fetch: _fetch,
-    ...methods,
-  } as YumiInstance<TDeserializers, TSerializers>;
+  return client as Client<S, D, Q>;
 };
 
-export const yumi = Yumi({
-  deserializers: defaultDeserializers,
+export const client = Client({
+  deserializers: createDefaultDeserializers(),
   serializers: defaultSerializers,
+  paramsSerializer,
 });
+
+export { HTTPError } from "./utils.ts";
