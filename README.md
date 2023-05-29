@@ -1,10 +1,39 @@
-# 🍬 Yumi-Fetch 🍭
+<p align="center">
+    <img src="https://svgshare.com/i/tf_.svg" align="center" width="420px">
+</p>
 
-```bash
-Benchmark summary
-  fetch
-   1.2x faster than Yumi
-   1.47x faster than Wretch
-   2.87x faster than ky
-   6.38x faster than Got
+A package that tries to improve your `fetch` experience without creating new
+abstractions or significantly increasing bundle size. Has a powerful plugin
+system that gives you complete control and amazing flexibility.
+
+## API example (not final)
+
+```ts
+import { 
+  createClient,
+} from "yumi-fetch";
+import {
+  httpMethodsAddon,
+  queryAddon,
+  bodyMethodsAddon 
+} from "yumi-fetch/addons";
+
+const client = createClient({
+    baseURL: "http://localhost:3000/api/",
+  })
+  .addon(queryAddon)
+  .addon(bodyMethodsAddon)
+  .addon(httpMethodsAddon);
+
+type User = { ... };
+
+const user = client.get("/users", { query: { id: 3 } })
+  .json<User>();
+
+const user = client.post("/user", {
+    json: { name: "Alexs", age: "21" }
+  })
+  .json<User>();
 ```
+
+In active development...

@@ -14,6 +14,7 @@
       "DOM",
       "ESNext",
       "DOM.Iterable",
+      "ES2023"
     ],
     "noUnusedLocals": true,
     "moduleResolution": "node",
