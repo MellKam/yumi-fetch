@@ -1,17 +1,16 @@
-export type AnyAsyncFunc = (...args: any[]) => Promise<any>;
+type AnyAsyncFunc = (...args: any[]) => Promise<any>;
 
 export type FetchLike = (req: Request) => Promise<Response>;
-
 export type FetchMiddleware = (next: FetchLike) => FetchLike;
 
 export type Addon<
   A_Self extends Record<string, any> = {},
   A_RequestOptinos extends Record<string, any> = {},
-  A_ResponseMethods extends Record<string, AnyAsyncFunc> = {},
+  A_ResponseMethods extends Record<string, ResponseMethod> = {},
 > = <
   C_Self extends Record<string, any> = {},
   C_RequestOptinos extends Record<string, any> = {},
-  C_ResponseMethods extends Record<string, AnyAsyncFunc> = {},
+  C_ResponseMethods extends Record<string, ResponseMethod> = {},
 >(
   client:
     & Client<
@@ -55,7 +54,7 @@ export type BeforeRequest<
 export interface Client<
   T_Self extends Record<string, any> = {},
   T_RequestOptinos extends Record<string, any> = {},
-  T_ResponseMethods extends Record<string, AnyAsyncFunc> = {},
+  T_ResponseMethods extends Record<string, ResponseMethod> = {},
 > {
   _url: URL | undefined;
 
@@ -75,20 +74,27 @@ export interface Client<
   ): Client<T_Self, T_RequestOptinos, T_ResponseMethods> & T_Self;
 
   _beforeRequest: BeforeRequest<T_RequestOptinos>[];
-  beforeRequest<
-    C_RequestOptinos extends Record<string, any> = {},
-  >(callback: BeforeRequest<T_RequestOptinos & C_RequestOptinos>):
-    & Client<T_Self, T_RequestOptinos & C_RequestOptinos, T_ResponseMethods>
+  beforeRequest(callback: BeforeRequest<T_RequestOptinos>):
+    & Client<T_Self, T_RequestOptinos, T_ResponseMethods>
     & T_Self;
 
-  _responseMethods: Record<string, ResponseMethodCreator> | null;
+  _responseMethods: T_ResponseMethods | null;
   responseMethods<
-    M_ResponseMethodCreators extends Record<string, ResponseMethodCreator>,
-  >(responseMethods: M_ResponseMethodCreators):
+    M_ResponseMethods extends Record<string, ResponseMethod>,
+  >(
+    this:
+      & Client<
+        T_Self,
+        T_RequestOptinos,
+        T_ResponseMethods & M_ResponseMethods
+      >
+      & T_Self,
+    responseMethods: M_ResponseMethods,
+  ):
     & Client<
       T_Self,
       T_RequestOptinos,
-      T_ResponseMethods & UnwrapResponseMethods<M_ResponseMethodCreators>
+      T_ResponseMethods & M_ResponseMethods
     >
     & T_Self;
 
@@ -135,97 +141,118 @@ const linkMiddlewares =
     return middlewares.reduceRight((next, mw) => mw(next), fetch);
   };
 
-export type ResponseMethodCreator<T extends AnyAsyncFunc = AnyAsyncFunc> = (
-  fetch: FetchLike,
-  req: Request,
-) => T;
-type UnwrapResponseMethods<T extends Record<string, ResponseMethodCreator>> = {
-  [K in keyof T]: ReturnType<T[K]>;
-};
+interface ResponsePromise extends Promise<Response> {
+  _fetch: FetchLike;
+  _req: Request;
+}
 
-const createResponsePromise = <T extends Record<string, ResponseMethodCreator>>(
+export type ResponseMethod = (
+  this: ResponsePromise,
+  ...args: any[]
+) => Promise<any>;
+
+const createResponsePromise = (
   fetch: FetchLike,
   req: Request,
-  responseMethods: T,
-): Promise<Response> & UnwrapResponseMethods<T> => {
-  const promise = {
+): ResponsePromise => {
+  return {
+    _fetch: fetch,
+    _req: req,
     then(onfulfilled, onrejected) {
-      return fetch(req).then(onfulfilled, onrejected);
+      return this._fetch(this._req).then(onfulfilled, onrejected);
     },
     catch(onrejected) {
-      return fetch(req).then(null, onrejected);
+      return this._fetch(this._req).then(null, onrejected);
     },
     finally(onfinally) {
-      return fetch(req).finally(onfinally);
+      return this._fetch(this._req).finally(onfinally);
     },
     [Symbol.toStringTag]: "ResponsePromise",
-  } as Promise<Response> & UnwrapResponseMethods<T>;
-
-  for (const key in responseMethods) {
-    promise[key] = responseMethods[key](fetch, req) as any;
-  }
-
-  return promise;
+  };
 };
 
-export const clientCore: Client = {
-  _url: undefined,
-  _headers: new Headers(),
-  headers(headers) {
-    new Headers(headers).forEach((value, key) => this._headers.set(key, value));
-    return this;
-  },
-  _options: {},
-  options(opts) {
-    this._options = { ...this.options, ...opts };
-    return this;
-  },
-  _middlewares: [],
-  middleware(mw) {
-    this._middlewares.push(mw);
-    return this;
-  },
-  _beforeRequest: [],
-  beforeRequest(callback) {
-    this._beforeRequest.push(callback);
-    return this as any;
-  },
-  _responseMethods: null,
-  responseMethods(responseMethods) {
-    this._responseMethods = {
-      ...this._responseMethods,
-      ...responseMethods,
-    };
-    return this as any;
-  },
-  fetch(resource, options = {}) {
-    let url = typeof resource == "string"
-      ? new URL(resource, this._url)
-      : resource;
+export type ClientOptions = {
+  baseURL?: string | URL;
+  headers?: HeadersInit;
+  options?: Exclude<RequestOptions, "headers">;
+};
 
-    let opts = {
-      ...this._options,
-      ...options,
-      headers: mergeHeaders(this._headers, options.headers),
-    };
+export const createClient = <
+  T_RequestOptinos extends Record<string, any> = {},
+  T_ResponseMethods extends Record<string, ResponseMethod> = {},
+>(
+  options: ClientOptions = {},
+): Client<{}, T_RequestOptinos, T_ResponseMethods> => {
+  return {
+    _url: typeof options.baseURL === "string"
+      ? new URL(options.baseURL)
+      : options.baseURL,
+    _headers: new Headers(options.headers),
+    headers(headers) {
+      new Headers(headers).forEach((value, key) =>
+        this._headers.set(key, value)
+      );
+      return this;
+    },
+    _options: {} as RequestOptions & T_RequestOptinos,
+    options(opts) {
+      this._options = { ...this.options, ...opts };
+      return this;
+    },
+    _middlewares: [],
+    middleware(mw) {
+      this._middlewares.push(mw);
+      return this;
+    },
+    _beforeRequest: [] as BeforeRequest<T_RequestOptinos>[],
+    beforeRequest(
+      callback: BeforeRequest<T_RequestOptinos>,
+    ) {
+      this._beforeRequest.push(callback);
+      return this;
+    },
+    _responseMethods: null,
+    responseMethods(responseMethods) {
+      this._responseMethods = {
+        ...this._responseMethods,
+        ...responseMethods,
+      } as any;
+      return this;
+    },
+    fetch(
+      resource: URL | string,
+      options: RequestOptions & Partial<T_RequestOptinos> = {},
+    ): Promise<Response> & T_ResponseMethods {
+      let url = typeof resource == "string"
+        ? new URL(resource, this._url)
+        : resource;
 
-    for (const callback of this._beforeRequest) {
-      callback(url, opts);
-    }
+      let opts = {
+        ...this._options,
+        ...options,
+        headers: mergeHeaders(this._headers, options.headers),
+      };
 
-    const req = new Request(url, opts);
+      for (const callback of this._beforeRequest) {
+        callback(url, opts);
+      }
 
-    const wrappedFetch = linkMiddlewares(this._middlewares)(globalThis.fetch);
+      const req = new Request(url, opts);
+      const wrappedFetch = linkMiddlewares(this._middlewares)(globalThis.fetch);
 
-    return this._responseMethods
-      ? createResponsePromise(
+      if (!this._responseMethods) {
+        return wrappedFetch(req) as Promise<Response> & T_ResponseMethods;
+      }
+
+      const promise = createResponsePromise(
         wrappedFetch,
         req,
-        this._responseMethods,
-      )
-      : wrappedFetch(req);
-  },
-  addon(addon) {
-    return addon(this as any);
-  },
+      ) as ResponsePromise & T_ResponseMethods;
+
+      return { ...promise, ...this._responseMethods };
+    },
+    addon(addon) {
+      return addon(this as any);
+    },
+  };
 };

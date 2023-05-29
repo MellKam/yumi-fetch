@@ -1,4 +1,4 @@
-import { Addon, ResponseMethodCreator } from "../core.ts";
+import { Addon, ResponseMethod } from "../core.ts";
 
 export type JSONValue =
   | null
@@ -31,12 +31,14 @@ type BodyMethods = {
 };
 
 const createBodyMethods = () => {
-  const bodyMethods = {} as Record<string, ResponseMethodCreator>;
+  const bodyMethods = {} as Record<string, ResponseMethod>;
 
   for (const contentType in BODY_METHODS) {
-    bodyMethods[contentType] = (fetch, req) => async () => {
-      req.headers.set("Accept", BODY_METHODS[contentType as BodyMethod]);
-      return await fetch(req).then((res) => res[contentType as BodyMethod]());
+    bodyMethods[contentType] = async function () {
+      this._req.headers.set("Accept", BODY_METHODS[contentType as BodyMethod]);
+      return this._fetch(this._req).then((res) =>
+        res[contentType as BodyMethod]()
+      );
     };
   }
 
@@ -51,7 +53,7 @@ export const bodyMethodsAddon: Addon<
   return {
     ...client.beforeRequest((_, opts) => {
       if (!opts.body && opts.json) {
-        opts.headers.set("Content-Type", "application/json");
+        opts.headers.set("Content-Type", BODY_METHODS.json);
         opts.body = JSON.stringify(opts.json);
       }
     }).responseMethods(createBodyMethods()),

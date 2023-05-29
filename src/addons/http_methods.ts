@@ -70,18 +70,22 @@ export interface HTTPMethodsSelf extends Record<Lowercase<HTTPMethod>, any> {
   ): ReturnType<this["fetch"]>;
 }
 
-export const httpMethodsAddon: Addon<HTTPMethodsSelf> = (client) => {
-  const methodsSelf = {} as HTTPMethodsSelf;
+const createMethods = () => {
+  const methods = {} as HTTPMethodsSelf;
 
   for (const method of HTTP_METHODS) {
-    methodsSelf[method] = function (
+    methods[method] = function (
       resource: URL | string,
       options: Parameters<typeof this["fetch"]>[1] = {},
     ) {
       (options as RequestInit).method = method;
-      return this.fetch(resource, options as any);
+      return this.fetch(resource, options);
     };
   }
 
-  return { ...client, ...methodsSelf };
+  return methods;
+};
+
+export const httpMethodsAddon: Addon<HTTPMethodsSelf> = (client) => {
+  return { ...client, ...createMethods() };
 };
