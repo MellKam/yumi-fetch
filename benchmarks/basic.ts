@@ -75,24 +75,29 @@ Deno.bench("Wretch", async () => {
 
 // --------- Yumi ---------
 
-import { client as yumi } from "../src/index.ts";
+import {
+  bodyMethodsAddon,
+  createClient,
+  httpMethodsAddon,
+} from "../src/index.ts";
 
 Deno.bench("Yumi", async () => {
-  const client = yumi.extend({
+  const client = createClient({
     baseURL: "https://jsonplaceholder.typicode.com/",
     headers: { "hello": "world" },
-  });
+  })
+    .addon(bodyMethodsAddon)
+    .addon(httpMethodsAddon);
 
   const post = await client
-    .post("posts", {
+    .post("/posts", {
       json: {
         title: "foo",
         body: "safasdd",
         userId: 2,
       },
-      query: { a: 5, b: true },
     })
-    .json<Post>();
+    .json();
 });
 
 // --------- KY ---------
@@ -116,23 +121,23 @@ Deno.bench("ky", async () => {
 
 // --------- GOT ---------
 
-import GOT from "npm:got";
+// import GOT from "npm:got";
 
-Deno.bench("Got", async () => {
-  const got = GOT.extend({
-    prefixUrl: "https://jsonplaceholder.typicode.com/",
-    headers: { "hello": "world" },
-  });
+// Deno.bench("Got", async () => {
+//   const got = GOT.extend({
+//     prefixUrl: "https://jsonplaceholder.typicode.com/",
+//     headers: { "hello": "world" },
+//   });
 
-  const post = await got
-    .post("posts", {
-      json: {
-        title: "foo",
-        body: "safasdd",
-        userId: 2,
-      },
-    }).json<Post>();
-});
+//   const post = await got
+//     .post("posts", {
+//       json: {
+//         title: "foo",
+//         body: "safasdd",
+//         userId: 2,
+//       },
+//     }).json<Post>();
+// });
 
 // --------- YA ---------
 
@@ -156,18 +161,18 @@ Deno.bench("Ya", async () => {
 
 // --------- Axios ---------
 
-import axios from "npm:axios";
+// import axios from "npm:axios";
 
-Deno.bench("Axios", async () => {
-  const $ = axios.create({
-    baseURL: "https://jsonplaceholder.typicode.com/",
-    headers: { "hello": "world" },
-  });
+// Deno.bench("Axios", async () => {
+//   const $ = axios.create({
+//     baseURL: "https://jsonplaceholder.typicode.com/",
+//     headers: { "hello": "world" },
+//   });
 
-  const { data: post } = await $
-    .post<Post>("posts", {
-      title: "foo",
-      body: "safasdd",
-      userId: 2,
-    });
-});
+//   const { data: post } = await $
+//     .post<Post>("posts", {
+//       title: "foo",
+//       body: "safasdd",
+//       userId: 2,
+//     });
+// });

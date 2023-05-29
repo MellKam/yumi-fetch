@@ -1,4 +1,6 @@
 {
-  "deno.enablePaths": ["benchmarks"],
-  "deno.unstable": true
+  "deno.enablePaths": [
+    "benchmarks"
+  ],
+  "svg.preview.background": "editor"
 }
