@@ -1,11 +1,11 @@
-type AnyAsyncFunc = (...args: any[]) => Promise<any>;
+type AnyAsyncFunc = (...args: unknown[]) => Promise<unknown>;
 
 export type FetchLike = (req: Request) => Promise<Response>;
 export type FetchMiddleware = (next: FetchLike) => FetchLike;
 
 export type Addon<
   A_Self extends Record<string, any> = {},
-  A_RequestOptinos extends Record<string, any> = {},
+  A_RequestOptions extends Record<string, any> = {},
   A_ResponseMethods extends Record<string, ResponseMethod> = {},
 > = <
   C_Self extends Record<string, any> = {},
@@ -15,14 +15,14 @@ export type Addon<
   client:
     & Client<
       C_Self & A_Self,
-      C_RequestOptinos & A_RequestOptinos,
+      C_RequestOptinos & A_RequestOptions,
       C_ResponseMethods & A_ResponseMethods
     >
     & C_Self,
 ) =>
   & Client<
     C_Self & A_Self,
-    C_RequestOptinos & A_RequestOptinos,
+    C_RequestOptinos & A_RequestOptions,
     C_ResponseMethods & A_ResponseMethods
   >
   & C_Self
@@ -105,18 +105,18 @@ export interface Client<
 
   addon<
     A_Self extends Record<string, any> = {},
-    A_RequestOptinos extends Record<string, any> = {},
+    A_RequestOptions extends Record<string, any> = {},
     A_ResponseMethods extends Record<string, AnyAsyncFunc> = {},
   >(
     addon: Addon<
       A_Self,
-      A_RequestOptinos,
+      A_RequestOptions,
       A_ResponseMethods
     >,
   ):
     & Client<
       T_Self & A_Self,
-      T_RequestOptinos & A_RequestOptinos,
+      T_RequestOptinos & A_RequestOptions,
       T_ResponseMethods & A_ResponseMethods
     >
     & T_Self
@@ -136,7 +136,7 @@ const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
 };
 
 const linkMiddlewares =
-  (middlewares: FetchMiddleware[]) => (fetch: FetchLike) => {
+  (middlewares: FetchMiddleware[]) => (fetch: FetchLike): FetchLike => {
     if (!middlewares.length) return fetch;
     return middlewares.reduceRight((next, mw) => mw(next), fetch);
   };
@@ -148,8 +148,8 @@ interface ResponsePromise extends Promise<Response> {
 
 export type ResponseMethod = (
   this: ResponsePromise,
-  ...args: any[]
-) => Promise<any>;
+  ...args: unknown[]
+) => Promise<unknown>;
 
 const createResponsePromise = (
   fetch: FetchLike,
@@ -196,7 +196,7 @@ export const createClient = <
     },
     _options: {} as RequestOptions & T_RequestOptinos,
     options(opts) {
-      this._options = { ...this.options, ...opts };
+      this._options = { ...this._options, ...opts };
       return this;
     },
     _middlewares: [],
@@ -223,11 +223,9 @@ export const createClient = <
       resource: URL | string,
       options: RequestOptions & Partial<T_RequestOptinos> = {},
     ): Promise<Response> & T_ResponseMethods {
-      let url = typeof resource == "string"
-        ? new URL(resource, this._url)
-        : resource;
+      const url = new URL(resource, this._url);
 
-      let opts = {
+      const opts = {
         ...this._options,
         ...options,
         headers: mergeHeaders(this._headers, options.headers),
