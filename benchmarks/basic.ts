@@ -97,7 +97,7 @@ Deno.bench("Yumi", async () => {
         userId: 2,
       },
     })
-    .json();
+    .json<Post>();
 });
 
 // --------- KY ---------

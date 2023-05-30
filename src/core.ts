@@ -7,10 +7,13 @@ export type Addon<
   A_Self extends Record<string, any> = {},
   A_RequestOptions extends Record<string, any> = {},
   A_ResponseMethods extends Record<string, ResponseMethod> = {},
+  X_Self extends Record<string, any> = {},
+  X_RequestOptions extends Record<string, any> = {},
+  X_ResponseMethods extends Record<string, ResponseMethod> = {},
 > = <
-  C_Self extends Record<string, any> = {},
-  C_RequestOptinos extends Record<string, any> = {},
-  C_ResponseMethods extends Record<string, ResponseMethod> = {},
+  C_Self extends X_Self,
+  C_RequestOptinos extends X_RequestOptions,
+  C_ResponseMethods extends X_ResponseMethods,
 >(
   client:
     & Client<
@@ -46,14 +49,14 @@ export type BeforeRequest<
   T_RequestOptions extends Record<string, any> = {},
 > = (
   url: URL,
-  options: Exclude<RequestOptions, "headers"> & Partial<T_RequestOptions> & {
+  options: Omit<RequestOptions, "headers"> & Partial<T_RequestOptions> & {
     headers: Headers;
   },
 ) => void;
 
 export interface Client<
   T_Self extends Record<string, any> = {},
-  T_RequestOptinos extends Record<string, any> = {},
+  T_RequestOptions extends Record<string, any> = {},
   T_ResponseMethods extends Record<string, ResponseMethod> = {},
 > {
   _url: URL | undefined;
@@ -61,21 +64,21 @@ export interface Client<
   _headers: Headers;
   headers(
     headers: HeadersInit,
-  ): Client<T_Self, T_RequestOptinos, T_ResponseMethods> & T_Self;
+  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
 
-  _options: Exclude<RequestOptions, "headers"> & T_RequestOptinos;
+  _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
   options(
-    options: Exclude<RequestOptions, "headers"> & T_RequestOptinos,
-  ): Client<T_Self, T_RequestOptinos, T_ResponseMethods> & T_Self;
+    options: Omit<RequestOptions, "headers"> & T_RequestOptions,
+  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
 
   _middlewares: FetchMiddleware[];
   middleware(
     mw: FetchMiddleware,
-  ): Client<T_Self, T_RequestOptinos, T_ResponseMethods> & T_Self;
+  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
 
-  _beforeRequest: BeforeRequest<T_RequestOptinos>[];
-  beforeRequest(callback: BeforeRequest<T_RequestOptinos>):
-    & Client<T_Self, T_RequestOptinos, T_ResponseMethods>
+  _beforeRequest: BeforeRequest<T_RequestOptions>[];
+  beforeRequest(callback: BeforeRequest<T_RequestOptions>):
+    & Client<T_Self, T_RequestOptions, T_ResponseMethods>
     & T_Self;
 
   _responseMethods: T_ResponseMethods | null;
@@ -85,7 +88,7 @@ export interface Client<
     this:
       & Client<
         T_Self,
-        T_RequestOptinos,
+        T_RequestOptions,
         T_ResponseMethods & M_ResponseMethods
       >
       & T_Self,
@@ -93,34 +96,48 @@ export interface Client<
   ):
     & Client<
       T_Self,
-      T_RequestOptinos,
+      T_RequestOptions,
       T_ResponseMethods & M_ResponseMethods
     >
     & T_Self;
 
   fetch(
     resource: URL | string,
-    options?: RequestOptions & Partial<T_RequestOptinos>,
+    options?: RequestOptions & Partial<T_RequestOptions>,
   ): Promise<Response> & T_ResponseMethods;
 
   addon<
     A_Self extends Record<string, any> = {},
     A_RequestOptions extends Record<string, any> = {},
     A_ResponseMethods extends Record<string, AnyAsyncFunc> = {},
+    X_Self extends Record<string, any> = {},
+    X_RequestOptions extends Record<string, any> = {},
+    X_ResponseMethods extends Record<string, ResponseMethod> = {},
   >(
     addon: Addon<
       A_Self,
       A_RequestOptions,
-      A_ResponseMethods
+      A_ResponseMethods,
+      X_Self,
+      X_RequestOptions,
+      X_ResponseMethods
     >,
-  ):
-    & Client<
-      T_Self & A_Self,
-      T_RequestOptinos & A_RequestOptions,
-      T_ResponseMethods & A_ResponseMethods
-    >
-    & T_Self
-    & A_Self;
+  ): (
+    (T_Self extends X_Self
+      ? T_RequestOptions extends X_RequestOptions
+        ? T_ResponseMethods extends X_ResponseMethods ? true : false
+      : false
+      : false)
+  ) extends true ? (
+      & Client<
+        T_Self & A_Self,
+        T_RequestOptions & A_RequestOptions,
+        T_ResponseMethods & A_ResponseMethods
+      >
+      & T_Self
+      & A_Self
+    )
+    : never;
 }
 
 const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
@@ -171,17 +188,17 @@ const createResponsePromise = (
   };
 };
 
-export type ClientOptions = {
+export type ClientOptions<T_RequestOptinos extends Record<string, any> = {}> = {
   baseURL?: string | URL;
   headers?: HeadersInit;
-  options?: Exclude<RequestOptions, "headers">;
+  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
 };
 
 export const createClient = <
   T_RequestOptinos extends Record<string, any> = {},
   T_ResponseMethods extends Record<string, ResponseMethod> = {},
 >(
-  options: ClientOptions = {},
+  options: ClientOptions<T_RequestOptinos> = {},
 ): Client<{}, T_RequestOptinos, T_ResponseMethods> => {
   return {
     _url: typeof options.baseURL === "string"

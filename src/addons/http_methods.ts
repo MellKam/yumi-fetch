@@ -11,62 +11,63 @@ const HTTP_METHODS: readonly Lowercase<HTTPMethod>[] = [
   "trace",
 ] as const;
 
-export interface HTTPMethodsSelf extends Record<Lowercase<HTTPMethod>, any> {
+export interface HTTPMethodsSelf
+  extends Record<Lowercase<HTTPMethod>, unknown> {
   get(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   post(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     // @ts-expect-error
   ): ReturnType<this["fetch"]>;
   put(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   patch(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   delete(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   head(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   options(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   trace(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
     resource: URL | string,
-    // @ts-expect-error
+    /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
 }
 

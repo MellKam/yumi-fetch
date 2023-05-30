@@ -10,6 +10,7 @@
     "emitDeclarationOnly": true,
     "declaration": true,
     "strict": true,
+    "removeComments": false,
     "lib": [
       "DOM",
       "ESNext",
@@ -23,7 +24,6 @@
     "outDir": "dist",
     "baseUrl": ".",
     "isolatedModules": true,
-    "skipLibCheck": true,
     "ignoreDeprecations": "5.0",
     "allowUnreachableCode": false,
     "allowUnusedLabels": false
