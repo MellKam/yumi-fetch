@@ -1,6 +1,4 @@
 {
-  "deno.enablePaths": [
-    "benchmarks"
-  ],
-  "svg.preview.background": "editor"
+  "deno.enablePaths": ["benchmarks/", "src/", "vite.config.ts"],
+  "deno.unstable": true
 }

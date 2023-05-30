@@ -1,9 +1,9 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "npm:vite";
 
 export default defineConfig({
   build: {
     lib: {
-      entry: "./src/index.ts",
+      entry: "./src/mod.ts",
       formats: ["cjs", "es"],
       fileName: "index",
     },

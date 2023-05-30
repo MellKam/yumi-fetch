@@ -3,6 +3,20 @@ type AnyAsyncFunc = (...args: unknown[]) => Promise<unknown>;
 export type FetchLike = (req: Request) => Promise<Response>;
 export type FetchMiddleware = (next: FetchLike) => FetchLike;
 
+export type HTTPMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE"
+  | "HEAD"
+  | "OPTIONS"
+  | "TRACE";
+
+export type RequestOptions = RequestInit & {
+  method?: HTTPMethod;
+};
+
 export type Addon<
   A_Self extends Record<string, any> = {},
   A_RequestOptions extends Record<string, any> = {},
@@ -31,20 +45,6 @@ export type Addon<
   & C_Self
   & A_Self;
 
-export type HTTPMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE"
-  | "HEAD"
-  | "OPTIONS"
-  | "TRACE";
-
-export type RequestOptions = RequestInit & {
-  method?: HTTPMethod;
-};
-
 export type BeforeRequest<
   T_RequestOptions extends Record<string, any> = {},
 > = (
@@ -55,7 +55,7 @@ export type BeforeRequest<
 ) => void;
 
 export interface Client<
-  T_Self extends Record<string, any> = {},
+  T_Self extends Record<string, any> = Record<string, void>,
   T_RequestOptions extends Record<string, any> = {},
   T_ResponseMethods extends Record<string, ResponseMethod> = {},
 > {
@@ -188,7 +188,9 @@ const createResponsePromise = (
   };
 };
 
-export type ClientOptions<T_RequestOptinos extends Record<string, any> = {}> = {
+export type ClientOptions<
+  T_RequestOptinos extends Record<string, any> = {},
+> = {
   baseURL?: string | URL;
   headers?: HeadersInit;
   options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
@@ -229,7 +231,9 @@ export const createClient = <
       return this;
     },
     _responseMethods: null,
-    responseMethods(responseMethods) {
+    responseMethods(
+      responseMethods,
+    ) {
       this._responseMethods = {
         ...this._responseMethods,
         ...responseMethods,

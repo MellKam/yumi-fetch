@@ -36,9 +36,8 @@ const createBodyMethods = () => {
   for (const contentType in BODY_METHODS) {
     bodyMethods[contentType] = async function () {
       this._req.headers.set("Accept", BODY_METHODS[contentType as BodyMethod]);
-      return this._fetch(this._req).then((res) =>
-        res[contentType as BodyMethod]()
-      );
+      const res = await this._fetch(this._req);
+      return res[contentType as BodyMethod]();
     };
   }
 

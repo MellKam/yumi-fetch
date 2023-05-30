@@ -25,7 +25,7 @@ export interface HTTPMethodsSelf
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
-    // @ts-expect-error
+    /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   put(
     this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,

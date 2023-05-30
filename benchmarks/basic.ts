@@ -79,7 +79,7 @@ import {
   bodyMethodsAddon,
   createClient,
   httpMethodsAddon,
-} from "../src/index.ts";
+} from "../src/mod.ts";
 
 Deno.bench("Yumi", async () => {
   const client = createClient({

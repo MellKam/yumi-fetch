@@ -11,12 +11,7 @@
     "declaration": true,
     "strict": true,
     "removeComments": false,
-    "lib": [
-      "DOM",
-      "ESNext",
-      "DOM.Iterable",
-      "ES2023"
-    ],
+    "lib": ["DOM", "ESNext", "DOM.Iterable"],
     "noUnusedLocals": true,
     "moduleResolution": "node",
     "module": "ESNext",
@@ -28,10 +23,6 @@
     "allowUnreachableCode": false,
     "allowUnusedLabels": false
   },
-  "include": [
-    "./src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-  ]
+  "include": ["./src/**/*.ts"],
+  "exclude": ["node_modules"]
 }
