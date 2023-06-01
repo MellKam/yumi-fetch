@@ -1,85 +1,87 @@
 import { Addon, Client, HTTPMethod } from "../core.ts";
 
-const HTTP_METHODS: readonly Lowercase<HTTPMethod>[] = [
-  "get",
-  "post",
-  "put",
-  "patch",
-  "delete",
-  "head",
-  "options",
-  "trace",
+const HTTP_METHODS: readonly HTTPMethod[] = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+  "OPTIONS",
+  "TRACE",
+  "CONNECT",
 ] as const;
 
-export interface HTTPMethodsSelf
+export interface HTTPFetchMethods
   extends Record<Lowercase<HTTPMethod>, unknown> {
   get(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   post(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   put(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   patch(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   delete(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   head(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   options(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
     options?: Parameters<this["fetch"]>[1],
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
   trace(
-    this: Client<HTTPMethodsSelf> & HTTPMethodsSelf,
+    this: Client<HTTPFetchMethods> & HTTPFetchMethods,
     resource: URL | string,
     /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
+    options?: Omit<Parameters<this["fetch"]>[1], "method">,
     /** @ts-expect-error */
   ): ReturnType<this["fetch"]>;
 }
 
 const createMethods = () => {
-  const methods = {} as HTTPMethodsSelf;
+  const methods = {} as HTTPFetchMethods;
 
   for (const method of HTTP_METHODS) {
-    methods[method] = function (
+    methods[method.toLowerCase() as keyof HTTPFetchMethods] = function (
       resource: URL | string,
-      options: Parameters<typeof this["fetch"]>[1] = {},
+      /** @ts-ignore */
+      options: Omit<Parameters<this["fetch"]>[1], "method"> = {},
     ) {
-      (options as RequestInit).method = method;
+      (options as RequestInit).method = method.toUpperCase();
       return this.fetch(resource, options);
     };
   }
@@ -87,6 +89,6 @@ const createMethods = () => {
   return methods;
 };
 
-export const httpMethodsAddon: Addon<HTTPMethodsSelf> = (client) => {
+export const httpMethodsAddon: Addon<HTTPFetchMethods> = (client) => {
   return { ...client, ...createMethods() };
 };

@@ -7,7 +7,8 @@
   "npm": {
     "specifiers": {
       "ky": "ky@0.33.3",
-      "vite": "vite@4.3.8",
+      "typescript": "typescript@5.1.3",
+      "vite": "vite@4.3.9",
       "wretch": "wretch@2.5.2",
       "ya-fetch": "ya-fetch@2.1.0"
     },
@@ -161,8 +162,21 @@
         "integrity": "sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==",
         "dependencies": {}
       },
+      "typescript@5.1.3": {
+        "integrity": "sha512-XH627E9vkeqhlZFQuL+UsyAXEnibT0kWR2FWONlr4sTjvxyJYnyefgrkyECLzM5NenmKzRAy2rR/OlYLA1HkZw==",
+        "dependencies": {}
+      },
       "vite@4.3.8": {
         "integrity": "sha512-uYB8PwN7hbMrf4j1xzGDk/lqjsZvCDbt/JC5dyfxc19Pg8kRm14LinK/uq+HSLNswZEoKmweGdtpbnxRtrAXiQ==",
+        "dependencies": {
+          "esbuild": "esbuild@0.17.19",
+          "fsevents": "fsevents@2.3.2",
+          "postcss": "postcss@8.4.23",
+          "rollup": "rollup@3.23.0"
+        }
+      },
+      "vite@4.3.9": {
+        "integrity": "sha512-qsTNZjO9NoJNW7KnOrgYwczm0WctJ8m/yqYAMAK9Lxt4SoySUfS5S8ia9K7JHpa3KEeMfyF8LoJ3c5NeBJy6pg==",
         "dependencies": {
           "esbuild": "esbuild@0.17.19",
           "fsevents": "fsevents@2.3.2",

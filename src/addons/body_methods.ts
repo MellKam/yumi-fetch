@@ -22,7 +22,7 @@ const BODY_METHODS = {
 
 type BodyMethod = keyof typeof BODY_METHODS;
 
-type BodyMethods = {
+export type BodyMethods = {
   json<T extends JSONValue>(): Promise<T>;
   text(): Promise<string>;
   arrayBuffer(): Promise<ArrayBuffer>;
@@ -49,12 +49,12 @@ export const bodyMethodsAddon: Addon<
   { json: JSONValue },
   BodyMethods
 > = (client) => {
-  return {
-    ...client.beforeRequest((_, opts) => {
+  return client
+    .addResponseMethods(createBodyMethods())
+    .beforeRequest((_, opts) => {
       if (!opts.body && opts.json) {
         opts.headers.set("Content-Type", BODY_METHODS.json);
         opts.body = JSON.stringify(opts.json);
       }
-    }).responseMethods(createBodyMethods()),
-  };
+    });
 };

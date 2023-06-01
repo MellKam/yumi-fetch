@@ -1,22 +1,92 @@
-type AnyAsyncFunc = (...args: unknown[]) => Promise<unknown>;
-
-export type FetchLike = (req: Request) => Promise<Response>;
-export type FetchMiddleware = (next: FetchLike) => FetchLike;
-
+/**
+ * Represents common HTTP methods used in web requests.
+ */
 export type HTTPMethod =
   | "GET"
   | "POST"
   | "PUT"
   | "PATCH"
+  | "CONNECT"
   | "DELETE"
   | "HEAD"
   | "OPTIONS"
   | "TRACE";
 
-export type RequestOptions = RequestInit & {
-  method?: HTTPMethod;
-};
+/**
+ * Represents a set of the most frequently used HTTP headers.
+ */
+export type CommonHeader =
+  | "Accept"
+  | "Accept-Charset"
+  | "Accept-Encoding"
+  | "Accept-Language"
+  | "Authorization"
+  | "Cache-Control"
+  | "Content-Disposition"
+  | "Content-Encoding"
+  | "Content-Length"
+  | "Content-Type"
+  | "Cookie"
+  | "Date"
+  | "ETag"
+  | "Expires"
+  | "Host"
+  | "If-Modified-Since"
+  | "If-None-Match"
+  | "Last-Modified"
+  | "Location"
+  | "Origin"
+  | "Referer"
+  | "Server"
+  | "Set-Cookie"
+  | "User-Agent"
+  | "WWW-Authenticate";
 
+/**
+ * Represents an improved, better-typed alternative to the `HeaderInit` type for providing headers in a request.
+ *
+ * This type offers better developer experience by providing more precise typing options for header initialization.
+ */
+export type BetterHeadersInit =
+  | Headers
+  | Record<CommonHeader, string>
+  | Record<string, string>
+  | [CommonHeader, string][]
+  | [string, string][];
+
+export type RequestOptions =
+  & Omit<RequestInit, "method" | "headers">
+  & {
+    headers?: BetterHeadersInit;
+    method?: HTTPMethod;
+  };
+
+export type FetchLike = (req: Request) => Promise<Response>;
+export type FetchMiddleware = (next: FetchLike) => FetchLike;
+
+export type BeforeRequest<
+  T_RequestOptions extends Record<string, any> = {},
+> = (
+  url: URL,
+  options:
+    & Omit<RequestOptions, "headers">
+    & { headers: Headers }
+    & Partial<T_RequestOptions>,
+) => void;
+
+export type ResponsePromise =
+  & Promise<Response>
+  & { _fetch: FetchLike; _req: Request }
+  & Record<string, any>;
+
+export type ResponseMethod = (
+  this: ResponsePromise,
+  ...args: unknown[]
+) => Promise<unknown>;
+
+/**
+ * Represents an addon(plugin) type that extends a client with additional functionality and properties.
+ */
 export type Addon<
   A_Self extends Record<string, any> = {},
   A_RequestOptions extends Record<string, any> = {},
@@ -45,44 +115,35 @@ export type Addon<
   & C_Self
   & A_Self;
 
-export type BeforeRequest<
-  T_RequestOptions extends Record<string, any> = {},
-> = (
-  url: URL,
-  options: Omit<RequestOptions, "headers"> & Partial<T_RequestOptions> & {
-    headers: Headers;
-  },
-) => void;
-
 export interface Client<
-  T_Self extends Record<string, any> = Record<string, void>,
+  T_Self extends Record<string, any> = {},
   T_RequestOptions extends Record<string, any> = {},
   T_ResponseMethods extends Record<string, ResponseMethod> = {},
 > {
-  _url: URL | undefined;
+  _baseURL: URL | undefined;
 
   _headers: Headers;
-  headers(
-    headers: HeadersInit,
+  setHeaders(
+    init: BetterHeadersInit,
   ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
 
   _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
-  options(
+  setOptions(
     options: Omit<RequestOptions, "headers"> & T_RequestOptions,
   ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
 
   _middlewares: FetchMiddleware[];
-  middleware(
-    mw: FetchMiddleware,
+  addMiddleware(
+    middleware: FetchMiddleware,
   ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
 
-  _beforeRequest: BeforeRequest<T_RequestOptions>[];
+  _beforeRequestCallbacks: BeforeRequest<T_RequestOptions>[];
   beforeRequest(callback: BeforeRequest<T_RequestOptions>):
     & Client<T_Self, T_RequestOptions, T_ResponseMethods>
     & T_Self;
 
   _responseMethods: T_ResponseMethods | null;
-  responseMethods<
+  addResponseMethods<
     M_ResponseMethods extends Record<string, ResponseMethod>,
   >(
     this:
@@ -106,10 +167,14 @@ export interface Client<
     options?: RequestOptions & Partial<T_RequestOptions>,
   ): Promise<Response> & T_ResponseMethods;
 
+  extend(
+    options: ClientOptions<T_RequestOptions, T_ResponseMethods>,
+  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
+
   addon<
     A_Self extends Record<string, any> = {},
     A_RequestOptions extends Record<string, any> = {},
-    A_ResponseMethods extends Record<string, AnyAsyncFunc> = {},
+    A_ResponseMethods extends Record<string, ResponseMethod> = {},
     X_Self extends Record<string, any> = {},
     X_RequestOptions extends Record<string, any> = {},
     X_ResponseMethods extends Record<string, ResponseMethod> = {},
@@ -140,33 +205,11 @@ export interface Client<
     : never;
 }
 
-const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
-  const result = new Headers(h1);
-
-  if (h2) {
-    new Headers(h2).forEach((value, key) => {
-      result.set(key, value);
-    });
-  }
-
-  return result;
-};
-
 const linkMiddlewares =
   (middlewares: FetchMiddleware[]) => (fetch: FetchLike): FetchLike => {
     if (!middlewares.length) return fetch;
     return middlewares.reduceRight((next, mw) => mw(next), fetch);
   };
-
-interface ResponsePromise extends Promise<Response> {
-  _fetch: FetchLike;
-  _req: Request;
-}
-
-export type ResponseMethod = (
-  this: ResponsePromise,
-  ...args: unknown[]
-) => Promise<unknown>;
 
 const createResponsePromise = (
   fetch: FetchLike,
@@ -188,90 +231,104 @@ const createResponsePromise = (
   };
 };
 
-export type ClientOptions<
-  T_RequestOptinos extends Record<string, any> = {},
-> = {
-  baseURL?: string | URL;
-  headers?: HeadersInit;
-  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
+const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
+  const result = new Headers(h1);
+  if (h2) {
+    new Headers(h2)
+      .forEach((value, key) => result.set(key, value));
+  }
+
+  return result;
 };
 
-export const createClient = <
+export const clientCore: Client = {
+  _baseURL: undefined,
+  _headers: new Headers(),
+  setHeaders(init) {
+    new Headers(init)
+      .forEach((value, key) => this._headers.set(key, value));
+    return this;
+  },
+  _options: {} as RequestOptions,
+  setOptions(options) {
+    this._options = { ...this._options, ...options };
+    return this;
+  },
+  _middlewares: [],
+  addMiddleware(middleware) {
+    this._middlewares.push(middleware);
+    return this;
+  },
+  _beforeRequestCallbacks: [] as BeforeRequest[],
+  beforeRequest(
+    callback: BeforeRequest,
+  ) {
+    this._beforeRequestCallbacks.push(callback);
+    return this;
+  },
+  _responseMethods: null,
+  addResponseMethods(
+    responseMethods,
+  ) {
+    this._responseMethods = {
+      ...this._responseMethods,
+      ...responseMethods,
+    } as any;
+    return this;
+  },
+  fetch(resource, options = {}) {
+    const url = new URL(resource, this._baseURL);
+
+    const headers = mergeHeaders(this._headers, options.headers);
+
+    const opts = { ...this._options, ...options, headers };
+
+    for (const callback of this._beforeRequestCallbacks) {
+      callback(url, opts);
+    }
+
+    const req = new Request(url, opts);
+    const wrappedFetch = linkMiddlewares(this._middlewares)(globalThis.fetch);
+
+    if (!this._responseMethods) {
+      return wrappedFetch(req);
+    }
+
+    return {
+      ...createResponsePromise(wrappedFetch, req),
+      ...this._responseMethods,
+    };
+  },
+  addon(addon) {
+    return addon(this as any);
+  },
+  extend(options) {
+    const client = {
+      ...this,
+
+      _baseURL: options.baseURL ? new URL(options.baseURL) : undefined,
+      _headers: mergeHeaders(this._headers, options.headers),
+      _middlewares: [...this._middlewares, ...(options.middlewares || [])],
+    };
+
+    if (options.options) {
+      client.setOptions(options.options);
+    }
+    if (options.responseMethods) {
+      client.addResponseMethods(options.responseMethods);
+    }
+
+    return client;
+  },
+};
+
+export type ClientOptions<
   T_RequestOptinos extends Record<string, any> = {},
   T_ResponseMethods extends Record<string, ResponseMethod> = {},
->(
-  options: ClientOptions<T_RequestOptinos> = {},
-): Client<{}, T_RequestOptinos, T_ResponseMethods> => {
-  return {
-    _url: typeof options.baseURL === "string"
-      ? new URL(options.baseURL)
-      : options.baseURL,
-    _headers: new Headers(options.headers),
-    headers(headers) {
-      new Headers(headers).forEach((value, key) =>
-        this._headers.set(key, value)
-      );
-      return this;
-    },
-    _options: {} as RequestOptions & T_RequestOptinos,
-    options(opts) {
-      this._options = { ...this._options, ...opts };
-      return this;
-    },
-    _middlewares: [],
-    middleware(mw) {
-      this._middlewares.push(mw);
-      return this;
-    },
-    _beforeRequest: [] as BeforeRequest<T_RequestOptinos>[],
-    beforeRequest(
-      callback: BeforeRequest<T_RequestOptinos>,
-    ) {
-      this._beforeRequest.push(callback);
-      return this;
-    },
-    _responseMethods: null,
-    responseMethods(
-      responseMethods,
-    ) {
-      this._responseMethods = {
-        ...this._responseMethods,
-        ...responseMethods,
-      } as any;
-      return this;
-    },
-    fetch(
-      resource: URL | string,
-      options: RequestOptions & Partial<T_RequestOptinos> = {},
-    ): Promise<Response> & T_ResponseMethods {
-      const url = new URL(resource, this._url);
-
-      const opts = {
-        ...this._options,
-        ...options,
-        headers: mergeHeaders(this._headers, options.headers),
-      };
-
-      for (const callback of this._beforeRequest) {
-        callback(url, opts);
-      }
-
-      const req = new Request(url, opts);
-      const wrappedFetch = linkMiddlewares(this._middlewares)(globalThis.fetch);
-
-      if (!this._responseMethods) {
-        return wrappedFetch(req) as Promise<Response> & T_ResponseMethods;
-      }
-
-      const promise = createResponsePromise(
-        wrappedFetch,
-        req,
-      ) as ResponsePromise & T_ResponseMethods;
-
-      return { ...promise, ...this._responseMethods };
-    },
-    addon(addon) {
-      return addon(this as any);
-    },
-  };
+> = {
+  baseURL?: string | URL;
+  headers?: BetterHeadersInit;
+  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
+  middlewares?: FetchMiddleware[];
+  responseMethods?: T_ResponseMethods;
 };

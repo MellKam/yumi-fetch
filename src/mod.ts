@@ -1,5 +1,11 @@
-export { bodyMethodsAddon } from "./addons/body_methods.ts";
-export { httpMethodsAddon } from "./addons/http_methods.ts";
-export { queryAddon } from "./addons/query.ts";
+import { clientCore } from "./core.ts";
+import { bodyMethodsAddon, httpMethodsAddon } from "./addons/mod.ts";
 
+const yumi = clientCore
+  .addon(bodyMethodsAddon)
+  .addon(httpMethodsAddon);
+
+export default yumi;
+
+export * from "./addons/mod.ts";
 export * from "./core.ts";
