@@ -116,7 +116,7 @@ export type Addon<
   & A_Self;
 
 export interface Client<
-  T_Self extends Record<string, any> = Record<string, void>,
+  T_Self extends Record<string, any> = {},
   T_RequestOptions extends Record<string, any> = {},
   T_ResponseMethods extends Record<string, ResponseMethod> = {},
 > {
