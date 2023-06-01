@@ -75,19 +75,13 @@ Deno.bench("Wretch", async () => {
 
 // --------- Yumi ---------
 
-import {
-  bodyMethodsAddon,
-  createClient,
-  httpMethodsAddon,
-} from "../src/index.ts";
+import yumi from "../src/mod.ts";
 
 Deno.bench("Yumi", async () => {
-  const client = createClient({
+  const client = yumi.extend({
     baseURL: "https://jsonplaceholder.typicode.com/",
     headers: { "hello": "world" },
-  })
-    .addon(bodyMethodsAddon)
-    .addon(httpMethodsAddon);
+  });
 
   const post = await client
     .post("/posts", {

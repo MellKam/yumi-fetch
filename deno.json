@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "build": "deno run -A npm:vite build && deno run -A npm:typescript/tsc",
+    "benchmark": "deno bench -A ./benchmarks/basic.ts"
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["ban-types", "no-explicit-any"]
+    }
+  },
+  "nodeModulesDir": true
+}

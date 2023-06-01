@@ -1,6 +1,6 @@
 import { Addon } from "../core.ts";
 
-interface SearchParams {
+export interface SearchParams {
   [k: string]:
     | string
     | number
@@ -10,14 +10,12 @@ interface SearchParams {
 }
 
 export const queryAddon: Addon<{}, { query: SearchParams }> = (client) => {
-  return {
-    ...client.beforeRequest((url, opts) => {
-      if (opts.query) {
-        for (const key in opts.query) {
-          const value = opts.query[key];
-          if (value) url.searchParams.set(key, value.toString());
-        }
+  return client.beforeRequest((url, opts) => {
+    if (opts.query) {
+      for (const key in opts.query) {
+        const value = opts.query[key];
+        if (value) url.searchParams.set(key, value.toString());
       }
-    }),
-  };
+    }
+  });
 };
