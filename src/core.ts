@@ -1,3 +1,7 @@
+export type PublicOnly<T> = {
+  [K in keyof T as Exclude<K, `_${string}`>]: T[K];
+};
+
 /**
  * Represents common HTTP methods used in web requests.
  */
@@ -79,10 +83,12 @@ export type ResponsePromise =
   & { _fetch: FetchLike; _req: Request }
   & Record<string, any>;
 
-export type ResponseMethod = (
+export type Resolver = (
   this: ResponsePromise,
   ...args: unknown[]
 ) => Promise<unknown>;
+
+export type Resolvers = Record<string, Resolver>;
 
 /**
  * Represents an addon(plugin) type that extends a client with additional functionality and properties.
@@ -90,118 +96,159 @@ export type ResponseMethod = (
 export type Addon<
   A_Self extends Record<string, any> = {},
   A_RequestOptions extends Record<string, any> = {},
-  A_ResponseMethods extends Record<string, ResponseMethod> = {},
+  A_Resolvers extends Resolvers = {},
   X_Self extends Record<string, any> = {},
   X_RequestOptions extends Record<string, any> = {},
-  X_ResponseMethods extends Record<string, ResponseMethod> = {},
+  X_Resolvers extends Resolvers = {},
 > = <
   C_Self extends X_Self,
   C_RequestOptinos extends X_RequestOptions,
-  C_ResponseMethods extends X_ResponseMethods,
+  C_Resolvers extends X_Resolvers,
 >(
   client:
     & Client<
       C_Self & A_Self,
       C_RequestOptinos & A_RequestOptions,
-      C_ResponseMethods & A_ResponseMethods
+      C_Resolvers & A_Resolvers,
+      false
     >
     & C_Self,
 ) =>
   & Client<
     C_Self & A_Self,
     C_RequestOptinos & A_RequestOptions,
-    C_ResponseMethods & A_ResponseMethods
+    C_Resolvers & A_Resolvers,
+    false
   >
   & C_Self
   & A_Self;
 
+export type ClientOptions<
+  T_RequestOptinos extends Record<string, any> = {},
+> = {
+  baseURL?: string | URL;
+  headers?: BetterHeadersInit;
+  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
+  middlewares?: FetchMiddleware[];
+};
+
 export interface Client<
   T_Self extends Record<string, any> = {},
   T_RequestOptions extends Record<string, any> = {},
-  T_ResponseMethods extends Record<string, ResponseMethod> = {},
+  T_Resolvers extends Resolvers = {},
+  T_Public extends boolean = true,
 > {
   _baseURL: URL | undefined;
 
   _headers: Headers;
   setHeaders(
     init: BetterHeadersInit,
-  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
+  ): T_Public extends true
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
   setOptions(
     options: Omit<RequestOptions, "headers"> & T_RequestOptions,
-  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
+  ): T_Public extends true
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   _middlewares: FetchMiddleware[];
-  addMiddleware(
+  useMiddleware(
     middleware: FetchMiddleware,
-  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
+  ): T_Public extends true
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   _beforeRequestCallbacks: BeforeRequest<T_RequestOptions>[];
-  beforeRequest(callback: BeforeRequest<T_RequestOptions>):
-    & Client<T_Self, T_RequestOptions, T_ResponseMethods>
-    & T_Self;
+  beforeRequest(
+    callback: BeforeRequest<T_RequestOptions>,
+  ): T_Public extends true
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
-  _responseMethods: T_ResponseMethods | null;
-  addResponseMethods<
-    M_ResponseMethods extends Record<string, ResponseMethod>,
+  _resolvers: T_Resolvers | null;
+  addResolvers<
+    M_Resolvers extends Resolvers,
   >(
     this:
       & Client<
         T_Self,
         T_RequestOptions,
-        T_ResponseMethods & M_ResponseMethods
+        T_Resolvers & M_Resolvers,
+        false
       >
       & T_Self,
-    responseMethods: M_ResponseMethods,
-  ):
-    & Client<
-      T_Self,
-      T_RequestOptions,
-      T_ResponseMethods & M_ResponseMethods
+    resolvers: M_Resolvers,
+  ): T_Public extends true ? PublicOnly<
+      & Client<
+        T_Self,
+        T_RequestOptions,
+        T_Resolvers & M_Resolvers
+      >
+      & T_Self
     >
-    & T_Self;
+    :
+      & Client<
+        T_Self,
+        T_RequestOptions,
+        T_Resolvers & M_Resolvers,
+        false
+      >
+      & T_Self;
 
   fetch(
     resource: URL | string,
     options?: RequestOptions & Partial<T_RequestOptions>,
-  ): Promise<Response> & T_ResponseMethods;
+  ): Promise<Response> & T_Resolvers;
 
   extend(
-    options: ClientOptions<T_RequestOptions, T_ResponseMethods>,
-  ): Client<T_Self, T_RequestOptions, T_ResponseMethods> & T_Self;
+    options: ClientOptions<T_RequestOptions>,
+  ): T_Public extends true
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   addon<
     A_Self extends Record<string, any> = {},
     A_RequestOptions extends Record<string, any> = {},
-    A_ResponseMethods extends Record<string, ResponseMethod> = {},
+    A_Resolvers extends Resolvers = {},
     X_Self extends Record<string, any> = {},
     X_RequestOptions extends Record<string, any> = {},
-    X_ResponseMethods extends Record<string, ResponseMethod> = {},
+    X_Resolvers extends Resolvers = {},
   >(
     addon: Addon<
       A_Self,
       A_RequestOptions,
-      A_ResponseMethods,
+      A_Resolvers,
       X_Self,
       X_RequestOptions,
-      X_ResponseMethods
+      X_Resolvers
     >,
   ): (
     (T_Self extends X_Self
       ? T_RequestOptions extends X_RequestOptions
-        ? T_ResponseMethods extends X_ResponseMethods ? true : false
+        ? T_Resolvers extends X_Resolvers ? true : false
       : false
       : false)
-  ) extends true ? (
-      & Client<
-        T_Self & A_Self,
-        T_RequestOptions & A_RequestOptions,
-        T_ResponseMethods & A_ResponseMethods
+  ) extends true ? (T_Public extends true ? PublicOnly<
+        & Client<
+          T_Self & A_Self,
+          T_RequestOptions & A_RequestOptions,
+          T_Resolvers & A_Resolvers
+        >
+        & T_Self
+        & A_Self
       >
-      & T_Self
-      & A_Self
-    )
+      :
+        & Client<
+          T_Self & A_Self,
+          T_RequestOptions & A_RequestOptions,
+          T_Resolvers & A_Resolvers,
+          false
+        >
+        & T_Self
+        & A_Self)
     : never;
 }
 
@@ -255,7 +302,7 @@ export const clientCore: Client = {
     return this;
   },
   _middlewares: [],
-  addMiddleware(middleware) {
+  useMiddleware(middleware) {
     this._middlewares.push(middleware);
     return this;
   },
@@ -266,19 +313,16 @@ export const clientCore: Client = {
     this._beforeRequestCallbacks.push(callback);
     return this;
   },
-  _responseMethods: null,
-  addResponseMethods(
-    responseMethods,
-  ) {
-    this._responseMethods = {
-      ...this._responseMethods,
-      ...responseMethods,
+  _resolvers: null,
+  addResolvers(resolvers) {
+    this._resolvers = {
+      ...this._resolvers,
+      ...resolvers,
     } as any;
     return this;
   },
   fetch(resource, options = {}) {
     const url = new URL(resource, this._baseURL);
-
     const headers = mergeHeaders(this._headers, options.headers);
 
     const opts = { ...this._options, ...options, headers };
@@ -290,45 +334,25 @@ export const clientCore: Client = {
     const req = new Request(url, opts);
     const wrappedFetch = linkMiddlewares(this._middlewares)(globalThis.fetch);
 
-    if (!this._responseMethods) {
+    if (!this._resolvers) {
       return wrappedFetch(req);
     }
 
     return {
       ...createResponsePromise(wrappedFetch, req),
-      ...this._responseMethods,
+      ...this._resolvers,
     };
   },
   addon(addon) {
     return addon(this as any);
   },
   extend(options) {
-    const client = {
+    return {
       ...this,
-
       _baseURL: options.baseURL ? new URL(options.baseURL) : undefined,
       _headers: mergeHeaders(this._headers, options.headers),
+      _options: { ...this._options, ...options.options },
       _middlewares: [...this._middlewares, ...(options.middlewares || [])],
     };
-
-    if (options.options) {
-      client.setOptions(options.options);
-    }
-    if (options.responseMethods) {
-      client.addResponseMethods(options.responseMethods);
-    }
-
-    return client;
   },
-};
-
-export type ClientOptions<
-  T_RequestOptinos extends Record<string, any> = {},
-  T_ResponseMethods extends Record<string, ResponseMethod> = {},
-> = {
-  baseURL?: string | URL;
-  headers?: BetterHeadersInit;
-  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
-  middlewares?: FetchMiddleware[];
-  responseMethods?: T_ResponseMethods;
 };
