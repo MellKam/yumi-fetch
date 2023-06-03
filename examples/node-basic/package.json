@@ -1,0 +1,13 @@
+{
+  "name": "@examples/node",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx ./main.ts"
+  },
+  "devDependencies": {
+    "tsx": "3.12.7"
+  },
+  "dependencies": {
+    "yumi-fetch": "workspace:*"
+  }
+}

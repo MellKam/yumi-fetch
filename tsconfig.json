@@ -21,7 +21,7 @@
     "isolatedModules": true,
     "ignoreDeprecations": "5.0",
     "allowUnreachableCode": false,
-    "allowUnusedLabels": false
+    "allowUnusedLabels": false,
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules"]

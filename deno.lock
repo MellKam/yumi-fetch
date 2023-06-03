@@ -2,7 +2,14 @@
   "version": "2",
   "remote": {
     "https://crux.land/api/get/2KNRVU.ts": "6a77d55844aba78d01520c5ff0b2f0af7f24cc1716a0de8b3bb6bd918c47b5ba",
-    "https://deno.land/x/mock_fetch@0.3.0/mod.ts": "7e7806c65ab17b2b684c334c4e565812bdaf504a3e9c938d2bb52bb67428bc89"
+    "https://deno.land/x/mock_fetch@0.3.0/mod.ts": "7e7806c65ab17b2b684c334c4e565812bdaf504a3e9c938d2bb52bb67428bc89",
+    "https://deno.land/x/yumi@v0.1.0-alpha.3/addons/body_resolvers.ts": "58849bec4e735bb3f6e666ce62bc6c5557393c12a09e8747b9662df80c42ecad",
+    "https://deno.land/x/yumi@v0.1.0-alpha.3/addons/fetch_methods.ts": "6597b7a58790c21752cc3b3a4d5cefcebb402bdd46463f093b750a808629c5d3",
+    "https://deno.land/x/yumi@v0.1.0-alpha.3/addons/json.ts": "955ca8a6ad1194126f4b9b5e7ecd830aa0b58e1391958543bea1f4361176a414",
+    "https://deno.land/x/yumi@v0.1.0-alpha.3/addons/mod.ts": "c685c3656194ca192b5f6a4332e57f6d01eaf361485c6692ea4b966d89a85e88",
+    "https://deno.land/x/yumi@v0.1.0-alpha.3/addons/query.ts": "b66cba924a6a1b84c06a04728da9c4b81be8c4909866a009e060a663b70cb20b",
+    "https://deno.land/x/yumi@v0.1.0-alpha.3/core.ts": "786550eb692a0ff752fea8a93fbb205d5cc64ea058e46ed08ecfc0aa1a556bb0",
+    "https://deno.land/x/yumi@v0.1.0-alpha.3/mod.ts": "a953dc5a78338588ed11bc3b2d7e139e5608f52d43adb9b4dbaeb0ba8d3ec027"
   },
   "npm": {
     "specifiers": {

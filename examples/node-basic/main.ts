@@ -1,4 +1,4 @@
-import client from "../../src/mod.ts";
+import { yumi } from "yumi-fetch";
 
 type Todo = {
   id: number;
@@ -14,13 +14,13 @@ type Todos = {
   limit: number;
 };
 
-const { todos } = await client
+const { todos } = await yumi
   .get("https://dummyjson.com/todos", { query: { limit: 2 } })
   .json<Todos>();
 
 console.log(todos);
 
-const createdTodo = await client
+const createdTodo = await yumi
   .post("https://dummyjson.com/todos/add", {
     json: {
       todo: "Star Yumi-Fetch repository",

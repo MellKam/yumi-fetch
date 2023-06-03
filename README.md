@@ -2,30 +2,58 @@
     <img src="https://svgshare.com/i/tf_.svg" align="center" width="420px">
 </p>
 
-A package that tries to improve your `fetch` experience without creating new
-abstractions or significantly increasing bundle size. Has a powerful plugin
-system that gives you complete control and amazing flexibility.
+Package that enhances your `fetch` experience and aims to be as similar to Fetch
+API as it can be. It has a powerful plugin system that gives you complete
+control and incredible flexibility.
 
-## API example (not final)`
+# Installation
 
-```ts
-import yumi from "yumi-fetch";
+## [NPM](https://www.npmjs.com/package/yumi-fetch)
 
-const client = yumi.extend({
-  baseURL: "http://localhost:3000/api/",
-});
-
-type User = { ... };
-
-const user = client.get("/users", { 
-    query: { id: 3 } 
-  })
-  .json<User>();
-
-const createdUser = client.post("/user", {
-    json: { name: "Alexs", age: "21" }
-  })
-  .json<User>();
+```bash
+npm i yumi-fetch
 ```
 
-In active development...
+## [deno.land](https://deno.land/x/yumi)
+
+```ts
+import yumi from "https://deno.land/x/yumi/mod.ts";
+```
+
+# Getting started
+
+```ts
+import { yumi } from "yumi-fetch";
+
+type Todo = {
+  id: number;
+  todo: string;
+  completed: boolean;
+  userId: number;
+};
+
+type Todos = {
+  todos: Todo[];
+  total: number;
+  skip: number;
+  limit: number;
+};
+
+const { todos } = await yumi
+  .get("https://dummyjson.com/todos", { query: { limit: 2 } })
+  .json<Todos>();
+
+console.log(todos);
+
+const createdTodo = await yumi
+  .post("https://dummyjson.com/todos/add", {
+    json: {
+      todo: "Star Yumi-Fetch repository",
+      completed: false,
+      userId: 5,
+    },
+  })
+  .json<Todo>();
+
+console.log(createdTodo);
+```

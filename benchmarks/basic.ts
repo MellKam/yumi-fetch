@@ -75,7 +75,7 @@ Deno.bench("Wretch", async () => {
 
 // --------- Yumi ---------
 
-import yumi from "../src/mod.ts";
+import { yumi } from "../src/mod.ts";
 
 Deno.bench("Yumi", async () => {
   const client = yumi.extend({
