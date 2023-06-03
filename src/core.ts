@@ -73,14 +73,45 @@ export type BeforeRequestCallback<
 
 export type ResponsePromise =
   & Promise<Response>
-  & { _req: Request }
-  & Record<string, unknown>;
+  & { _req: Request };
 
+/**
+ * A function that will be attached to `ResponsePromise` and will have the capability to execute a fetch promise while modifying the original request.
+ *
+ * Note: Cannot be an arrow function, as context would be lost.
+ *
+ * @example
+ * ```ts
+ * function () {
+ *   this._req.headers.set("Accept", "application/json");
+ *   return (await this).json();
+ * }
+ * ```
+ */
 export type Resolver = (
   this: ResponsePromise,
   ...args: unknown[]
 ) => Promise<unknown>;
 export type Resolvers = Record<string, Resolver>;
+
+const createResponsePromise = (
+  fetcher: FetchLike,
+  req: Request,
+): ResponsePromise => {
+  return {
+    _req: req,
+    then(onfulfilled, onrejected) {
+      return fetcher(this._req).then(onfulfilled, onrejected);
+    },
+    catch(onrejected) {
+      return fetcher(this._req).then(null, onrejected);
+    },
+    finally(onfinally) {
+      return fetcher(this._req).finally(onfinally);
+    },
+    [Symbol.toStringTag]: "Promise",
+  };
+};
 
 export type ExtendOptions<
   T_RequestOptinos extends Record<string, any> = {},
@@ -152,6 +183,12 @@ export type PublicOnly<T> = {
   [K in keyof T as Exclude<K, `_${string}`>]: T[K];
 };
 
+/**
+ * @template T_Self - Allows the client to extend its properties
+ * @template T_RequestOptinos - Allows you to extend request options with custom properties
+ * @template T_Resolvers - Allows you to extend response promise with custom methods (resolvers)
+ * @template T_Public - Boolean that represends "will the client hide all private properties"
+ */
 export interface Client<
   T_Self extends Record<string, any> = {},
   T_RequestOptions extends Record<string, any> = {},
@@ -277,25 +314,6 @@ const linkMiddlewares =
     if (!middlewares.length) return fetch;
     return middlewares.reduceRight((next, mw) => mw(next), fetch);
   };
-
-const createResponsePromise = (fetch: FetchLike, req: Request) => {
-  const promise: ResponsePromise & { _fetch: FetchLike } = {
-    _fetch: fetch,
-    _req: req,
-    then(onfulfilled, onrejected) {
-      return this._fetch(this._req).then(onfulfilled, onrejected);
-    },
-    catch(onrejected) {
-      return this._fetch(this._req).then(null, onrejected);
-    },
-    finally(onfinally) {
-      return this._fetch(this._req).finally(onfinally);
-    },
-    [Symbol.toStringTag]: "Promise",
-  };
-
-  return promise as ResponsePromise;
-};
 
 const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
   const result = new Headers(h1);
