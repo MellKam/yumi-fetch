@@ -1,10 +1,3 @@
-export type PublicOnly<T> = {
-  [K in keyof T as Exclude<K, `_${string}`>]: T[K];
-};
-
-/**
- * Represents common HTTP methods used in web requests.
- */
 export type HTTPMethod =
   | "GET"
   | "POST"
@@ -51,7 +44,7 @@ export type CommonHeader =
  *
  * This type offers better developer experience by providing more precise typing options for header initialization.
  */
-export type BetterHeadersInit =
+export type BetterHeaderInit =
   | Headers
   | Record<CommonHeader, string>
   | Record<string, string>
@@ -59,16 +52,16 @@ export type BetterHeadersInit =
   | [string, string][];
 
 export type RequestOptions =
-  & Omit<RequestInit, "method" | "headers">
+  & RequestInit
   & {
-    headers?: BetterHeadersInit;
+    headers?: BetterHeaderInit;
     method?: HTTPMethod;
   };
 
 export type FetchLike = (req: Request) => Promise<Response>;
 export type FetchMiddleware = (next: FetchLike) => FetchLike;
 
-export type BeforeRequest<
+export type BeforeRequestCallback<
   T_RequestOptions extends Record<string, any> = {},
 > = (
   url: URL,
@@ -80,56 +73,83 @@ export type BeforeRequest<
 
 export type ResponsePromise =
   & Promise<Response>
-  & { _fetch: FetchLike; _req: Request }
-  & Record<string, any>;
+  & { _req: Request }
+  & Record<string, unknown>;
 
 export type Resolver = (
   this: ResponsePromise,
   ...args: unknown[]
 ) => Promise<unknown>;
-
 export type Resolvers = Record<string, Resolver>;
 
+export type ExtendOptions<
+  T_RequestOptinos extends Record<string, any> = {},
+> = {
+  baseURL?: string | URL;
+  headers?: BetterHeaderInit;
+  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
+};
+
 /**
- * Represents an addon(plugin) type that extends a client with additional functionality and properties.
+ * Represents a type of addon (in other words, plugin) that extends the client type with custom generics.
+ *
+ * ### Addon modifications
+ * An addon modification is a set of generics that the addon uses to modify the client's generics.
+ *
+ * @template M_Self (Self modifications) - The object of properties, that addon will add to the client `Self` generic.
+ * @template M_RequestOptions (Request options modifications) - Options that addon will add to the client `RequestOptions` generic.
+ * @template M_Resolvers (Resolvers modifications) - Resolvers that addon will add to the client `Resolvers` generic.
+ *
+ * ### Addon dependencies
+ * An addon dependency is a set of generics that the addon requires from the client to be included.
+ *
+ * @template D_Self (Self dependencies) - Dependencies on client `Self` generic.
+ * @template D_RequestOptions (Request options dependencies) - Dependencies on client `RequestOptions` generic.
+ * @template D_Resolvers (Resolvers dependecies) - Dependencies on client `Resolvers` generic.
  */
 export type Addon<
-  A_Self extends Record<string, any> = {},
-  A_RequestOptions extends Record<string, any> = {},
-  A_Resolvers extends Resolvers = {},
-  X_Self extends Record<string, any> = {},
-  X_RequestOptions extends Record<string, any> = {},
-  X_Resolvers extends Resolvers = {},
+  M_Self extends Record<string, any> = {},
+  M_RequestOptions extends Record<string, any> = {},
+  M_Resolvers extends Resolvers = {},
+  D_Self extends Record<string, any> = {},
+  D_RequestOptions extends Record<string, any> = {},
+  D_Resolvers extends Resolvers = {},
 > = <
-  C_Self extends X_Self,
-  C_RequestOptinos extends X_RequestOptions,
-  C_Resolvers extends X_Resolvers,
+  C_Self extends D_Self,
+  C_RequestOptinos extends D_RequestOptions,
+  C_Resolvers extends D_Resolvers,
 >(
   client:
     & Client<
-      C_Self & A_Self,
-      C_RequestOptinos & A_RequestOptions,
-      C_Resolvers & A_Resolvers,
-      false
+      C_Self & M_Self,
+      C_RequestOptinos & M_RequestOptions,
+      C_Resolvers & M_Resolvers,
+      false // "false" => because addon must always have access to the client's private properties
     >
     & C_Self,
 ) =>
   & Client<
-    C_Self & A_Self,
-    C_RequestOptinos & A_RequestOptions,
-    C_Resolvers & A_Resolvers,
+    C_Self & M_Self,
+    C_RequestOptinos & M_RequestOptions,
+    C_Resolvers & M_Resolvers,
     false
   >
   & C_Self
-  & A_Self;
+  & M_Self;
 
-export type ClientOptions<
-  T_RequestOptinos extends Record<string, any> = {},
-> = {
-  baseURL?: string | URL;
-  headers?: BetterHeadersInit;
-  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
-  middlewares?: FetchMiddleware[];
+/**
+ * Excludes all properties starting with `_` (underscores) from the object.
+ *
+ * Since there is no concept of private and public fields in JS objects, we accept the convention that all properties starting with `_` are private and all others are public.
+ *
+ * @example
+ * ```ts
+ * type T = PublicOnly<{ foo: string, _bar: number }>;
+ * // now T = { foo: string }
+ * ```
+ */
+export type PublicOnly<T> = {
+  [K in keyof T as Exclude<K, `_${string}`>]: T[K];
 };
 
 export interface Client<
@@ -142,7 +162,7 @@ export interface Client<
 
   _headers: Headers;
   setHeaders(
-    init: BetterHeadersInit,
+    init: BetterHeaderInit,
   ): T_Public extends true
     ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
@@ -161,9 +181,9 @@ export interface Client<
     ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
-  _beforeRequestCallbacks: BeforeRequest<T_RequestOptions>[];
+  _beforeRequestCallbacks: BeforeRequestCallback<T_RequestOptions>[];
   beforeRequest(
-    callback: BeforeRequest<T_RequestOptions>,
+    callback: BeforeRequestCallback<T_RequestOptions>,
   ): T_Public extends true
     ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
@@ -204,7 +224,7 @@ export interface Client<
   ): Promise<Response> & T_Resolvers;
 
   extend(
-    options: ClientOptions<T_RequestOptions>,
+    options: ExtendOptions<T_RequestOptions>,
   ): T_Public extends true
     ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
@@ -258,11 +278,8 @@ const linkMiddlewares =
     return middlewares.reduceRight((next, mw) => mw(next), fetch);
   };
 
-const createResponsePromise = (
-  fetch: FetchLike,
-  req: Request,
-): ResponsePromise => {
-  return {
+const createResponsePromise = (fetch: FetchLike, req: Request) => {
+  const promise: ResponsePromise & { _fetch: FetchLike } = {
     _fetch: fetch,
     _req: req,
     then(onfulfilled, onrejected) {
@@ -274,8 +291,10 @@ const createResponsePromise = (
     finally(onfinally) {
       return this._fetch(this._req).finally(onfinally);
     },
-    [Symbol.toStringTag]: "ResponsePromise",
+    [Symbol.toStringTag]: "Promise",
   };
+
+  return promise as ResponsePromise;
 };
 
 const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
@@ -306,19 +325,14 @@ export const clientCore: Client = {
     this._middlewares.push(middleware);
     return this;
   },
-  _beforeRequestCallbacks: [] as BeforeRequest[],
-  beforeRequest(
-    callback: BeforeRequest,
-  ) {
+  _beforeRequestCallbacks: [] as BeforeRequestCallback[],
+  beforeRequest(callback) {
     this._beforeRequestCallbacks.push(callback);
     return this;
   },
   _resolvers: null,
   addResolvers(resolvers) {
-    this._resolvers = {
-      ...this._resolvers,
-      ...resolvers,
-    } as any;
+    this._resolvers = { ...this._resolvers, ...resolvers };
     return this;
   },
   fetch(resource, options = {}) {
@@ -352,7 +366,6 @@ export const clientCore: Client = {
       _baseURL: options.baseURL ? new URL(options.baseURL) : undefined,
       _headers: mergeHeaders(this._headers, options.headers),
       _options: { ...this._options, ...options.options },
-      _middlewares: [...this._middlewares, ...(options.middlewares || [])],
     };
   },
 };

@@ -29,8 +29,7 @@ export const bodyResolvers = <JSONType = unknown>(): Addon<
   for (const contentType in BODY_METHODS) {
     bodyResolvers[contentType] = async function () {
       this._req.headers.set("Accept", BODY_METHODS[contentType as BodyMethod]);
-      const res = await this._fetch(this._req);
-      return res[contentType as BodyMethod]();
+      return (await this)[contentType as BodyMethod]();
     };
   }
 

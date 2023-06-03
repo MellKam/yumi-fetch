@@ -18,13 +18,12 @@ jobs:
           node-version: "18.x"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+      - name: Setup deno
+      - uses: denoland/setup-deno@v1
         with:
-          run_install: true
-          version: latest
+          deno-version: v1.x
 
       - name: build and publish
-        run: pnpm build && pnpm publish --ignore-scripts --access public --no-git-checks
+        run: deno task build && npm publish --ignore-scripts --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

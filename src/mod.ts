@@ -1,9 +1,15 @@
 import { clientCore } from "./core.ts";
-import { bodyResolvers, fetchMethods, jsonSerializer } from "./addons/mod.ts";
+import {
+  bodyResolvers,
+  fetchMethods,
+  jsonSerializer,
+  queryAddon,
+} from "./addons/mod.ts";
 
 const yumi = clientCore
   .addon(fetchMethods)
   .addon(bodyResolvers())
+  .addon(queryAddon)
   .addon(jsonSerializer());
 
 export default yumi;

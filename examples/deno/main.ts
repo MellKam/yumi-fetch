@@ -1,6 +1,4 @@
-import yumi, { queryAddon } from "../../src/mod.ts";
-
-const client = yumi.addon(queryAddon);
+import client from "../../src/mod.ts";
 
 type Todo = {
   id: number;
