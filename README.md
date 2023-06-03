@@ -2,6 +2,21 @@
     <img src="https://svgshare.com/i/tf_.svg" align="center" width="420px">
 </p>
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/yumi-fetch">
+    <img alt="npm" src="https://img.shields.io/npm/v/yumi-fetch?color=FF3797&label=NPM">
+  </a>
+  <a href="https://deno.land/x/yumi">
+    <img alt="deno.land" src="https://img.shields.io/github/v/tag/MellKam/yumi-fetch?color=FF3797&label=deno.land%2Fx&logo=deno">
+  </a>
+  <a href="https://github.com/MellKam/yumi-fetch/blob/main/LICENSE">
+    <img alt="license" src="https://img.shields.io/github/license/MellKam/yumi-fetch?color=FF3797">
+  </a>
+  <a href="https://github.com/MellKam/soundify/commits/main">
+    <img src="https://img.shields.io/github/last-commit/MellKam/yumi-fetch?color=FF3797" alt="Last commit" />
+  </a>
+</p>
+
 Package that enhances your `fetch` experience and aims to be as similar to Fetch
 API as it can be. It has a powerful plugin system that gives you complete
 control and incredible flexibility.
@@ -25,6 +40,10 @@ import yumi from "https://deno.land/x/yumi/mod.ts";
 ```ts
 import { yumi } from "yumi-fetch";
 
+const client = yumi.extend({
+  baseURL: "https://dummyjson.com/",
+});
+
 type Todo = {
   id: number;
   todo: string;
@@ -39,14 +58,14 @@ type Todos = {
   limit: number;
 };
 
-const { todos } = await yumi
-  .get("https://dummyjson.com/todos", { query: { limit: 2 } })
+const { todos } = await client
+  .get("/todos", { query: { limit: 2 } })
   .json<Todos>();
 
 console.log(todos);
 
-const createdTodo = await yumi
-  .post("https://dummyjson.com/todos/add", {
+const createdTodo = await client
+  .post("/todos/add", {
     json: {
       todo: "Star Yumi-Fetch repository",
       completed: false,
