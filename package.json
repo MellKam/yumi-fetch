@@ -5,7 +5,7 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "type": "module",
-  "types": "dist/index.d.ts",
+  "types": "dist/mod.d.ts",
   "files": [
     "dist/",
     "src/",
