@@ -183,6 +183,13 @@ export type PublicOnly<T> = {
   [K in keyof T as Exclude<K, `_${string}`>]: T[K];
 };
 
+type IsExtends<A, B> = A extends B ? true : false;
+
+type IsAllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
+  : T extends [infer First extends boolean, ...infer Rest extends boolean[]]
+    ? U extends First ? IsAllEquals<Rest, U> : false
+  : never;
+
 /**
  * @template T_Self - Allows the client to extend its properties
  * @template T_RequestOptinos - Allows you to extend request options with custom properties
@@ -282,13 +289,14 @@ export interface Client<
       X_RequestOptions,
       X_Resolvers
     >,
-  ): (
-    (T_Self extends X_Self
-      ? T_RequestOptions extends X_RequestOptions
-        ? T_Resolvers extends X_Resolvers ? true : false
-      : false
-      : false)
-  ) extends true ? (T_Public extends true ? PublicOnly<
+  ): IsAllEquals<
+    [
+      IsExtends<T_Self, X_Self>,
+      IsExtends<T_RequestOptions, X_RequestOptions>,
+      IsExtends<T_Resolvers, X_Resolvers>,
+    ],
+    true
+  > extends true ? (T_Public extends true ? PublicOnly<
         & Client<
           T_Self & A_Self,
           T_RequestOptions & A_RequestOptions,
@@ -323,6 +331,21 @@ const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
   }
 
   return result;
+};
+
+const mergeURLs = (
+  clientURL?: URL | string,
+  extendURL?: URL | string,
+): URL | string | undefined => {
+  if (extendURL) {
+    if (!clientURL) return new URL(extendURL);
+
+    return typeof extendURL === "string"
+      ? new URL(extendURL, clientURL)
+      : new URL(extendURL);
+  }
+
+  return clientURL ? new URL(clientURL) : undefined;
 };
 
 export const clientCore: Client = {
@@ -381,7 +404,7 @@ export const clientCore: Client = {
   extend(options) {
     return {
       ...this,
-      _baseURL: options.baseURL ? new URL(options.baseURL) : undefined,
+      _baseURL: mergeURLs(this._baseURL, options.baseURL),
       _headers: mergeHeaders(this._headers, options.headers),
       _options: { ...this._options, ...options.options },
     };

@@ -14,14 +14,18 @@ type Todos = {
   limit: number;
 };
 
-const { todos } = await yumi
-  .get("https://dummyjson.com/todos", { query: { limit: 2 } })
+const client = yumi.extend({
+  baseURL: "https://dummyjson.com/",
+});
+
+const { todos } = await client
+  .get("/todos", { query: { limit: 2 } })
   .json<Todos>();
 
 console.log(todos);
 
-const createdTodo = await yumi
-  .post("https://dummyjson.com/todos/add", {
+const createdTodo = await client
+  .post("/todos/add", {
     json: {
       todo: "Star Yumi-Fetch repository",
       completed: false,
