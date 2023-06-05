@@ -185,13 +185,24 @@ export type PublicOnly<T> = {
 
 type IsExtends<A, B> = A extends B ? true : false;
 
-type IsAllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
+/**
+ * Are all elements of the array `T` equal to an element of `U`
+ *
+ * @example
+ * ```ts
+ * IsAllEquals<[false, false], false>
+ * // true
+ * IsAllEquals<[false, true], false>
+ * // false
+ * ```
+ */
+type AllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
   : T extends [infer First extends boolean, ...infer Rest extends boolean[]]
-    ? U extends First ? IsAllEquals<Rest, U> : false
+    ? U extends First ? AllEquals<Rest, U> : false
   : never;
 
 /**
- * @template T_Self - Allows the client to extend its properties
+ * @template T_Self - Allows you to extend the client with custom properties
  * @template T_RequestOptinos - Allows you to extend request options with custom properties
  * @template T_Resolvers - Allows you to extend response promise with custom methods (resolvers)
  * @template T_Public - Boolean that represends "will the client hide all private properties"
@@ -200,56 +211,64 @@ export interface Client<
   T_Self extends Record<string, any> = {},
   T_RequestOptions extends Record<string, any> = {},
   T_Resolvers extends Resolvers = {},
-  T_Public extends boolean = true,
+  T_Public extends boolean = false,
 > {
   _baseURL: URL | undefined;
 
   _headers: Headers;
   setHeaders(
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     init: BetterHeaderInit,
   ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
   setOptions(
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     options: Omit<RequestOptions, "headers"> & T_RequestOptions,
   ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   _middlewares: FetchMiddleware[];
   useMiddleware(
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     middleware: FetchMiddleware,
   ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
-  _beforeRequestCallbacks: BeforeRequestCallback<T_RequestOptions>[];
+  _beforeRequest: BeforeRequestCallback<T_RequestOptions>[];
   beforeRequest(
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     callback: BeforeRequestCallback<T_RequestOptions>,
   ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   _resolvers: T_Resolvers | null;
   addResolvers<
     M_Resolvers extends Resolvers,
   >(
-    this:
-      & Client<
-        T_Self,
-        T_RequestOptions,
-        T_Resolvers & M_Resolvers,
-        false
-      >
-      & T_Self,
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     resolvers: M_Resolvers,
   ): T_Public extends true ? PublicOnly<
       & Client<
         T_Self,
         T_RequestOptions,
-        T_Resolvers & M_Resolvers
+        T_Resolvers & M_Resolvers,
+        true
       >
       & T_Self
     >
@@ -263,57 +282,66 @@ export interface Client<
       & T_Self;
 
   fetch(
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     resource: URL | string,
     options?: RequestOptions & Partial<T_RequestOptions>,
   ): Promise<Response> & T_Resolvers;
 
   extend(
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     options: ExtendOptions<T_RequestOptions>,
   ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
     : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
 
   addon<
-    A_Self extends Record<string, any> = {},
-    A_RequestOptions extends Record<string, any> = {},
-    A_Resolvers extends Resolvers = {},
-    X_Self extends Record<string, any> = {},
-    X_RequestOptions extends Record<string, any> = {},
-    X_Resolvers extends Resolvers = {},
+    M_Self extends Record<string, any> = {},
+    M_RequestOptions extends Record<string, any> = {},
+    M_Resolvers extends Resolvers = {},
+    D_Self extends Record<string, any> = {},
+    D_RequestOptions extends Record<string, any> = {},
+    D_Resolvers extends Resolvers = {},
   >(
+    this: T_Public extends true
+      ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+      : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self,
     addon: Addon<
-      A_Self,
-      A_RequestOptions,
-      A_Resolvers,
-      X_Self,
-      X_RequestOptions,
-      X_Resolvers
+      M_Self,
+      M_RequestOptions,
+      M_Resolvers,
+      D_Self,
+      D_RequestOptions,
+      D_Resolvers
     >,
-  ): IsAllEquals<
+  ): AllEquals<
     [
-      IsExtends<T_Self, X_Self>,
-      IsExtends<T_RequestOptions, X_RequestOptions>,
-      IsExtends<T_Resolvers, X_Resolvers>,
+      IsExtends<T_Self, D_Self>,
+      IsExtends<T_RequestOptions, D_RequestOptions>,
+      IsExtends<T_Resolvers, D_Resolvers>,
     ],
     true
   > extends true ? (T_Public extends true ? PublicOnly<
         & Client<
-          T_Self & A_Self,
-          T_RequestOptions & A_RequestOptions,
-          T_Resolvers & A_Resolvers
+          T_Self & M_Self,
+          T_RequestOptions & M_RequestOptions,
+          T_Resolvers & M_Resolvers
         >
         & T_Self
-        & A_Self
+        & M_Self
       >
       :
         & Client<
-          T_Self & A_Self,
-          T_RequestOptions & A_RequestOptions,
-          T_Resolvers & A_Resolvers,
+          T_Self & M_Self,
+          T_RequestOptions & M_RequestOptions,
+          T_Resolvers & M_Resolvers,
           false
         >
         & T_Self
-        & A_Self)
+        & M_Self)
     : never;
 }
 
@@ -334,9 +362,9 @@ const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
 };
 
 const mergeURLs = (
-  clientURL?: URL | string,
+  clientURL?: URL,
   extendURL?: URL | string,
-): URL | string | undefined => {
+): URL | undefined => {
   if (extendURL) {
     if (!clientURL) return new URL(extendURL);
 
@@ -366,15 +394,15 @@ export const clientCore: Client = {
     this._middlewares.push(middleware);
     return this;
   },
-  _beforeRequestCallbacks: [] as BeforeRequestCallback[],
+  _beforeRequest: [] as BeforeRequestCallback[],
   beforeRequest(callback) {
-    this._beforeRequestCallbacks.push(callback);
+    this._beforeRequest.push(callback);
     return this;
   },
   _resolvers: null,
   addResolvers(resolvers) {
     this._resolvers = { ...this._resolvers, ...resolvers };
-    return this;
+    return this as any;
   },
   fetch(resource, options = {}) {
     const url = new URL(resource, this._baseURL);
@@ -382,7 +410,7 @@ export const clientCore: Client = {
 
     const opts = { ...this._options, ...options, headers };
 
-    for (const callback of this._beforeRequestCallbacks) {
+    for (const callback of this._beforeRequest) {
       callback(url, opts);
     }
 
@@ -410,3 +438,14 @@ export const clientCore: Client = {
     };
   },
 };
+
+export type ToPublic<T extends Client<any, any, any, false>> = T extends
+  Client<infer T_Self, infer T_RequestOptinos, infer T_Resolvers, false>
+  ? PublicOnly<Client<T_Self, T_RequestOptinos, T_Resolvers, true>> & T_Self
+  : never;
+
+export type ToPrivate<T extends PublicOnly<Client<any, any, any, true>>> =
+  T extends PublicOnly<
+    Client<infer T_Self, infer T_RequestOptinos, infer T_Resolvers, true>
+  > ? Client<T_Self, T_RequestOptinos, T_Resolvers, false>
+    : never;
