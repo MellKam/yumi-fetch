@@ -18,12 +18,8 @@ const client = yumi.extend({
   baseURL: "https://dummyjson.com/",
 });
 
-client.onError((error) => {
-  console.log(error.text);
-});
-
 const { todos } = await client
-  .get("/todoss", { query: { limit: 2 } })
+  .get("/todos", { query: { limit: 2 } })
   .json<Todos>();
 
 console.log(todos);

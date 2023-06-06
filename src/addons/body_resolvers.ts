@@ -33,6 +33,5 @@ export const bodyResolvers = <JSONType = unknown>(): Addon<
     };
   }
 
-  client.addResolvers(bodyResolvers);
-  return client;
+  return client.addResolvers(bodyResolvers);
 };
