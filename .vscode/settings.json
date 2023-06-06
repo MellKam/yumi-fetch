@@ -1,4 +1,4 @@
 {
-  "deno.enablePaths": ["benchmarks/", "src/", "vite.config.ts", "examples/deno"],
+  "deno.enablePaths": ["benchmarks/", "src/", "vite.config.ts", "examples/deno-basic", "examples/deno-abort"],
   "deno.unstable": true
 }

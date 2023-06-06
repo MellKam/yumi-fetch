@@ -48,9 +48,9 @@ export interface ResponseEvents {
   _onSuccess: OnSuccess[];
   _onError: OnError[];
   /** @ts-expect-error */
-  onSuccess(callback: OnSuccess): NonNullable<this["__returnClient"]>;
+  onSuccess(callback: OnSuccess): NonNullable<this["__T_ReturnThis"]>;
   /** @ts-expect-error */
-  onError(callback: OnError): NonNullable<this["__returnClient"]>;
+  onError(callback: OnError): NonNullable<this["__T_ReturnThis"]>;
 }
 
 export const errorHandler: Addon<ResponseEvents> = (client) => {

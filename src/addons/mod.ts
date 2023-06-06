@@ -3,3 +3,4 @@ export * from "./fetch_methods.ts";
 export * from "./query.ts";
 export * from "./json.ts";
 export * from "./error_handler.ts";
+export * from "./abort.ts";

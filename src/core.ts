@@ -63,6 +63,7 @@ export type FetchMiddleware = (
   next: FetchLike,
 ) => FetchLike;
 
+export type AfterResponseCleaner = () => void;
 export type BeforeRequestCallback<
   T_RequestOptions extends Record<string, any> = {},
 > = (
@@ -71,7 +72,7 @@ export type BeforeRequestCallback<
     & Omit<RequestOptions, "headers">
     & { headers: Headers }
     & Partial<T_RequestOptions>,
-) => void;
+) => void | AfterResponseCleaner;
 
 export type ResponsePromise =
   & Promise<Response>
@@ -120,7 +121,7 @@ export type ExtendOptions<
 > = {
   baseURL?: string | URL;
   headers?: BetterHeaderInit;
-  options?: Omit<RequestOptions, "headers"> & T_RequestOptinos;
+  options?: Omit<RequestOptions, "headers"> & Partial<T_RequestOptinos>;
 };
 
 /**
@@ -403,21 +404,29 @@ export const clientCore: Client = {
 
     const opts = { ...this._options, ...options, headers };
 
+    const cleaners: AfterResponseCleaner[] = [];
     for (const callback of this._beforeRequest) {
-      callback(url, opts);
+      const cleaner = callback(url, opts);
+      if (cleaner) cleaners.push(cleaner);
     }
 
     const req = new Request(url, opts);
-    const wrappedFetch = linkMiddlewares(this._middlewares)(globalThis.fetch);
 
-    if (!this._resolvers) {
-      return wrappedFetch(req);
-    }
+    const _fetch: FetchLike = cleaners.length
+      ? (req) =>
+        globalThis.fetch(req).finally(() => {
+          for (const cleaner of cleaners) cleaner();
+        })
+      : globalThis.fetch;
 
-    return {
-      ...createResponsePromise(wrappedFetch, req),
-      ...this._resolvers,
-    };
+    const wrappedFetch = linkMiddlewares(this._middlewares)(_fetch);
+
+    return this._resolvers
+      ? {
+        ...createResponsePromise(wrappedFetch, req),
+        ...this._resolvers,
+      }
+      : wrappedFetch(req);
   },
   addon(addon) {
     return addon(this as any);
