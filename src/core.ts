@@ -59,7 +59,9 @@ export type RequestOptions =
   };
 
 export type FetchLike = (req: Request) => Promise<Response>;
-export type FetchMiddleware = (next: FetchLike) => FetchLike;
+export type FetchMiddleware = (
+  next: FetchLike,
+) => FetchLike;
 
 export type BeforeRequestCallback<
   T_RequestOptions extends Record<string, any> = {},
@@ -155,7 +157,7 @@ export type Addon<
       C_Self & M_Self,
       C_RequestOptinos & M_RequestOptions,
       C_Resolvers & M_Resolvers,
-      false // "false" => because addon must always have access to the client's private properties
+      false
     >
     & C_Self,
 ) =>
@@ -185,81 +187,89 @@ export type PublicOnly<T> = {
 
 type IsExtends<A, B> = A extends B ? true : false;
 
-type IsAllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
+/**
+ * Are all elements of the array `T` equal to an element of `U`
+ *
+ * @example
+ * ```ts
+ * IsAllEquals<[false, false], false>
+ * // true
+ * IsAllEquals<[false, true], false>
+ * // false
+ * ```
+ */
+type AllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
   : T extends [infer First extends boolean, ...infer Rest extends boolean[]]
-    ? U extends First ? IsAllEquals<Rest, U> : false
+    ? U extends First ? AllEquals<Rest, U> : false
   : never;
 
 /**
- * @template T_Self - Allows the client to extend its properties
- * @template T_RequestOptinos - Allows you to extend request options with custom properties
- * @template T_Resolvers - Allows you to extend response promise with custom methods (resolvers)
- * @template T_Public - Boolean that represends "will the client hide all private properties"
+ * Represents an object that can perform HTTP requests.
+ *
+ * @template T_Self - Allows you to extend the client with custom properties
+ * @template T_RequestOptions - Allows you to extend request options with custom properties
+ * @template T_Resolvers - Allows you to extend the response promise with custom methods, referred to as resolvers
+ * @template T_IsPublicOnly - Boolean value indicating whether the client will hide private properties
  */
 export interface Client<
   T_Self extends Record<string, any> = {},
   T_RequestOptions extends Record<string, any> = {},
   T_Resolvers extends Resolvers = {},
-  T_Public extends boolean = true,
+  T_IsPublicOnly extends boolean = true,
 > {
+  /**
+   * @internal
+   * The purpose of this field is to make typescript work with generic inference in intersection types. It will not be initialized on the javascript side, so it will always be `undefined`.
+   */
+  __T_Self?: T_Self;
+  /**
+   * This is a small hack for reusing types in and out of the interface. It will not be initialized on the javascript side, so it will always be `undefined`.
+   *
+   * @example
+   * ```ts
+   * // This way you can create chainable methods for your addon
+   * interface MyAddonModifications {
+   *   //@ts-expect-error
+   *   myMethod(): NonNullable<this["__T_ReturnThis"]>;
+   * }
+   * ```
+   */
+  __T_ReturnThis?: T_IsPublicOnly extends true
+    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
+    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
+
   _baseURL: URL | undefined;
 
   _headers: Headers;
   setHeaders(
     init: BetterHeaderInit,
-  ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
-    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
+  ): NonNullable<this["__T_ReturnThis"]>;
 
   _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
   setOptions(
     options: Omit<RequestOptions, "headers"> & T_RequestOptions,
-  ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
-    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
+  ): NonNullable<this["__T_ReturnThis"]>;
 
   _middlewares: FetchMiddleware[];
   useMiddleware(
     middleware: FetchMiddleware,
-  ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
-    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
+  ): NonNullable<this["__T_ReturnThis"]>;
 
-  _beforeRequestCallbacks: BeforeRequestCallback<T_RequestOptions>[];
+  _beforeRequest: BeforeRequestCallback<T_RequestOptions>[];
   beforeRequest(
     callback: BeforeRequestCallback<T_RequestOptions>,
-  ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
-    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
+  ): NonNullable<this["__T_ReturnThis"]>;
 
   _resolvers: T_Resolvers | null;
   addResolvers<
     M_Resolvers extends Resolvers,
   >(
-    this:
-      & Client<
-        T_Self,
-        T_RequestOptions,
-        T_Resolvers & M_Resolvers,
-        false
-      >
-      & T_Self,
     resolvers: M_Resolvers,
-  ): T_Public extends true ? PublicOnly<
-      & Client<
-        T_Self,
-        T_RequestOptions,
-        T_Resolvers & M_Resolvers
-      >
-      & T_Self
+  ): T_IsPublicOnly extends true ? PublicOnly<
+      Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers, true> & T_Self
     >
     :
-      & Client<
-        T_Self,
-        T_RequestOptions,
-        T_Resolvers & M_Resolvers,
-        false
-      >
+      & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers, false>
       & T_Self;
 
   fetch(
@@ -269,51 +279,50 @@ export interface Client<
 
   extend(
     options: ExtendOptions<T_RequestOptions>,
-  ): T_Public extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
-    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
+  ): NonNullable<this["__T_ReturnThis"]>;
 
   addon<
-    A_Self extends Record<string, any> = {},
-    A_RequestOptions extends Record<string, any> = {},
-    A_Resolvers extends Resolvers = {},
-    X_Self extends Record<string, any> = {},
-    X_RequestOptions extends Record<string, any> = {},
-    X_Resolvers extends Resolvers = {},
+    M_Self extends Record<string, any> = {},
+    M_RequestOptions extends Record<string, any> = {},
+    M_Resolvers extends Resolvers = {},
+    D_Self extends Record<string, any> = {},
+    D_RequestOptions extends Record<string, any> = {},
+    D_Resolvers extends Resolvers = {},
   >(
     addon: Addon<
-      A_Self,
-      A_RequestOptions,
-      A_Resolvers,
-      X_Self,
-      X_RequestOptions,
-      X_Resolvers
+      M_Self,
+      M_RequestOptions,
+      M_Resolvers,
+      D_Self,
+      D_RequestOptions,
+      D_Resolvers
     >,
-  ): IsAllEquals<
+  ): AllEquals<
     [
-      IsExtends<T_Self, X_Self>,
-      IsExtends<T_RequestOptions, X_RequestOptions>,
-      IsExtends<T_Resolvers, X_Resolvers>,
+      IsExtends<T_Self, D_Self>,
+      IsExtends<T_RequestOptions, D_RequestOptions>,
+      IsExtends<T_Resolvers, D_Resolvers>,
     ],
     true
-  > extends true ? (T_Public extends true ? PublicOnly<
+  > extends true ? T_IsPublicOnly extends true ? PublicOnly<
         & Client<
-          T_Self & A_Self,
-          T_RequestOptions & A_RequestOptions,
-          T_Resolvers & A_Resolvers
+          T_Self & M_Self,
+          T_RequestOptions & M_RequestOptions,
+          T_Resolvers & M_Resolvers,
+          true
         >
         & T_Self
-        & A_Self
+        & M_Self
       >
-      :
-        & Client<
-          T_Self & A_Self,
-          T_RequestOptions & A_RequestOptions,
-          T_Resolvers & A_Resolvers,
-          false
-        >
-        & T_Self
-        & A_Self)
+    :
+      & Client<
+        T_Self & M_Self,
+        T_RequestOptions & M_RequestOptions,
+        T_Resolvers & M_Resolvers,
+        false
+      >
+      & T_Self
+      & M_Self
     : never;
 }
 
@@ -334,9 +343,9 @@ const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
 };
 
 const mergeURLs = (
-  clientURL?: URL | string,
+  clientURL?: URL,
   extendURL?: URL | string,
-): URL | string | undefined => {
+): URL | undefined => {
   if (extendURL) {
     if (!clientURL) return new URL(extendURL);
 
@@ -348,6 +357,18 @@ const mergeURLs = (
   return clientURL ? new URL(clientURL) : undefined;
 };
 
+/**
+ * The plain object that implements `Client` interface.
+ * You don't need to instantiate it to use it, as you do with classes.
+ * If you need multiple instances, you can clone it with `extend()` method.
+ *
+ * #### Why plain object and not class ???
+ * There were many attempts to write it in classes, but nothing succeeded. It was especially difficult to satisfy typescript. So it was decided to choose objects instead of classes.
+ * In spite of this, in some places we still have to lie to the about types.
+ *
+ * #### Concept of public and private fields
+ * Basically, since we don't use classes, we have to manage our private fields ourselves. In our case, we treat fields starting with `_` (underscore) as private, and any others as public. We can hide private fields from the typescript side using the generic `T_IsPublicOnly`.
+ */
 export const clientCore: Client = {
   _baseURL: undefined,
   _headers: new Headers(),
@@ -366,15 +387,15 @@ export const clientCore: Client = {
     this._middlewares.push(middleware);
     return this;
   },
-  _beforeRequestCallbacks: [] as BeforeRequestCallback[],
+  _beforeRequest: [] as BeforeRequestCallback[],
   beforeRequest(callback) {
-    this._beforeRequestCallbacks.push(callback);
+    this._beforeRequest.push(callback);
     return this;
   },
   _resolvers: null,
   addResolvers(resolvers) {
     this._resolvers = { ...this._resolvers, ...resolvers };
-    return this;
+    return this as any;
   },
   fetch(resource, options = {}) {
     const url = new URL(resource, this._baseURL);
@@ -382,7 +403,7 @@ export const clientCore: Client = {
 
     const opts = { ...this._options, ...options, headers };
 
-    for (const callback of this._beforeRequestCallbacks) {
+    for (const callback of this._beforeRequest) {
       callback(url, opts);
     }
 
@@ -410,3 +431,14 @@ export const clientCore: Client = {
     };
   },
 };
+
+export type ToPublicClient<T extends Client<any, any, any, false>> = T extends
+  Client<infer T_Self, infer T_RequestOptinos, infer T_Resolvers, false>
+  ? PublicOnly<Client<T_Self, T_RequestOptinos, T_Resolvers, true>> & T_Self
+  : never;
+
+export type ToPrivateClient<T extends PublicOnly<Client<any, any, any, true>>> =
+  T extends PublicOnly<
+    Client<infer T_Self, infer T_RequestOptinos, infer T_Resolvers, true>
+  > ? Client<T_Self, T_RequestOptinos, T_Resolvers, false> & T_Self
+    : never;

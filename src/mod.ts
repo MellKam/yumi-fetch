@@ -1,11 +1,11 @@
 import { clientCore } from "./core.ts";
 import {
   bodyResolvers,
+  errorHandler,
   fetchMethods,
   jsonSerializer,
   querySerializer,
 } from "./addons/mod.ts";
-import { errorHandler } from "./middlewares/mod.ts";
 
 /**
  * The default client we recommend comes with a few essential add-ons that can greatly simplify your experience.
@@ -16,10 +16,9 @@ export const yumi = clientCore
   .addon(bodyResolvers())
   .addon(querySerializer)
   .addon(jsonSerializer())
-  .useMiddleware(errorHandler);
+  .addon(errorHandler);
 
 export type Yumi = typeof yumi;
 
-export * from "./middlewares/mod.ts";
 export * from "./addons/mod.ts";
 export * from "./core.ts";
