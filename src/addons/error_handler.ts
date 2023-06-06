@@ -1,4 +1,4 @@
-import { Addon, PublicOnly } from "../core.ts";
+import { Addon } from "../core.ts";
 
 export class HTTPError extends Error {
   readonly status: number;
@@ -41,17 +41,19 @@ export class HTTPError extends Error {
   }
 }
 
-type OnSuccess = (req: Request, res: Response) => Promise<void> | void;
-type OnError = (err: HTTPError) => Promise<void> | void;
+export type OnSuccess = (req: Request, res: Response) => Promise<void> | void;
+export type OnError = (err: HTTPError) => Promise<void> | void;
 
-interface ErrorHandler {
+export interface ResponseEvents {
   _onSuccess: OnSuccess[];
   _onError: OnError[];
-  onSuccess(callback: OnSuccess): PublicOnly<this>;
-  onError(callback: OnError): PublicOnly<this>;
+  /** @ts-expect-error */
+  onSuccess(callback: OnSuccess): NonNullable<this["__returnClient"]>;
+  /** @ts-expect-error */
+  onError(callback: OnError): NonNullable<this["__returnClient"]>;
 }
 
-export const errorHandler: Addon<ErrorHandler> = (client) => {
+export const errorHandler: Addon<ResponseEvents> = (client) => {
   const _onError: OnError[] = [];
   const _onSuccess: OnSuccess[] = [];
 
