@@ -1,6 +1,6 @@
 import { Addon } from "../core.ts";
 
-export type OnAbort = (req: Request, err: DOMException) => void | Promise<void>;
+export type OnAbort = (req: Request, err: DOMException) => void;
 
 export interface AbortEvents {
   _onAbort: OnAbort[];
@@ -19,11 +19,13 @@ export const abort: Addon<AbortEvents, { timeout: number }> = (client) => {
     const timeoutID = setTimeout(() => controller.abort(), opts.timeout);
 
     return () => clearTimeout(timeoutID);
-  }).useMiddleware((next) => (req) => {
-    return next(req).catch(async (error) => {
+  });
+
+  client.useMiddleware((next) => (req) => {
+    return next(req).catch((error) => {
       if (error.name === "AbortError") {
         for (const callback of _onAbort) {
-          await callback(req, error);
+          callback(req, error);
         }
       }
       throw error;
