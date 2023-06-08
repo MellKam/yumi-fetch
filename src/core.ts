@@ -107,7 +107,7 @@ const createResponsePromise = (
       return fetcher(this._req).then(onfulfilled, onrejected);
     },
     catch(onrejected) {
-      return fetcher(this._req).then(null, onrejected);
+      return fetcher(this._req).catch(onrejected);
     },
     finally(onfinally) {
       return fetcher(this._req).finally(onfinally);
