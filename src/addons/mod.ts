@@ -4,3 +4,4 @@ export * from "./query.ts";
 export * from "./json.ts";
 export * from "./error_handler.ts";
 export * from "./abort.ts";
+export * from "./retry.ts";

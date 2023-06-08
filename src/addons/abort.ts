@@ -21,7 +21,7 @@ export const abort: Addon<AbortEvents, { timeout: number }> = (client) => {
     return () => clearTimeout(timeoutID);
   });
 
-  client.useMiddleware((next) => (req) => {
+  client.addMiddleware((next) => (req) => {
     return next(req).catch((error) => {
       if (error.name === "AbortError") {
         for (const callback of _onAbort) {

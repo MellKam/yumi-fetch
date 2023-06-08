@@ -117,11 +117,13 @@ const createResponsePromise = (
 };
 
 export type ExtendOptions<
-  T_RequestOptinos extends Record<string, any> = {},
+  T_RequestOptions extends Record<string, any> = {},
 > = {
   baseURL?: string | URL;
   headers?: BetterHeaderInit;
-  options?: Omit<RequestOptions, "headers"> & Partial<T_RequestOptinos>;
+  options?:
+    & Omit<RequestOptions, "headers">
+    & Partial<T_RequestOptions>;
 };
 
 /**
@@ -252,7 +254,7 @@ export interface Client<
   ): NonNullable<this["__T_ReturnThis"]>;
 
   _middlewares: FetchMiddleware[];
-  useMiddleware(
+  addMiddleware(
     middleware: FetchMiddleware,
   ): NonNullable<this["__T_ReturnThis"]>;
 
@@ -279,7 +281,7 @@ export interface Client<
   ): Promise<Response> & T_Resolvers;
 
   extend(
-    options: ExtendOptions<T_RequestOptions>,
+    options: ExtendOptions,
   ): NonNullable<this["__T_ReturnThis"]>;
 
   addon<
@@ -378,13 +380,13 @@ export const clientCore: Client = {
       .forEach((value, key) => this._headers.set(key, value));
     return this;
   },
-  _options: {} as RequestOptions,
+  _options: {} as Omit<RequestOptions, "headers">,
   setOptions(options) {
     this._options = { ...this._options, ...options };
     return this;
   },
   _middlewares: [],
-  useMiddleware(middleware) {
+  addMiddleware(middleware) {
     this._middlewares.push(middleware);
     return this;
   },
@@ -399,10 +401,14 @@ export const clientCore: Client = {
     return this as any;
   },
   fetch(resource, options = {}) {
-    const url = new URL(resource, this._baseURL);
-    const headers = mergeHeaders(this._headers, options.headers);
-
-    const opts = { ...this._options, ...options, headers };
+    const url = typeof resource === "string"
+      ? new URL(resource, this._baseURL)
+      : resource;
+    const opts = {
+      ...this._options,
+      ...options,
+      headers: mergeHeaders(this._headers, options.headers),
+    };
 
     const cleaners: AfterResponseCleaner[] = [];
     for (const callback of this._beforeRequest) {

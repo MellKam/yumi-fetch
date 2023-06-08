@@ -57,7 +57,7 @@ export const errorHandler: Addon<ResponseEvents> = (client) => {
   const _onError: OnError[] = [];
   const _onSuccess: OnSuccess[] = [];
 
-  client.useMiddleware((next) => async (req) => {
+  client.addMiddleware((next) => async (req) => {
     const res = await next.call(this, req);
     if (res.ok) {
       for (const callback of _onSuccess) {
