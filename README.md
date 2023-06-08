@@ -15,6 +15,9 @@
   <a href="https://github.com/MellKam/soundify/commits/main">
     <img src="https://img.shields.io/github/last-commit/MellKam/yumi-fetch?color=FF3797" alt="Last commit" />
   </a>
+  <a href="https://bundlejs.com/?q=yumi-fetch&treeshake=%5B%7B+yumi+%7D%5D">
+    <img src="https://deno.bundlejs.com/?q=yumi-fetch&treeshake=[{+yumi+}]&badge=minified&color=FF3797" alt="Size of yumi client">
+  </a>
 </p>
 
 Package that enhances your `fetch` experience and aims to be as similar to Fetch
