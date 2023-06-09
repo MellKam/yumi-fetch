@@ -1,6 +1,5 @@
 import { clientCore } from "./core.ts";
 import {
-  auth,
   bodyResolvers,
   fetchMethods,
   jsonSerializer,
@@ -15,19 +14,7 @@ export const yumi = clientCore
   .addon(fetchMethods)
   .addon(bodyResolvers())
   .addon(querySerializer)
-  .addon(jsonSerializer())
-  .addon(auth({
-    getStoredToken: () => {
-      return "Stored token";
-    },
-    refreshToken: () => {
-      return "Refreshed token";
-    },
-    tokenFormatter: (token) => `Bearer ${token}`,
-    onUnauthorized: () => {
-      // ask user to relogin
-    },
-  }));
+  .addon(jsonSerializer());
 
 export type Yumi = typeof yumi;
 
