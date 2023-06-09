@@ -188,6 +188,59 @@ export type PublicOnly<T> = {
   [K in keyof T as Exclude<K, `_${string}`>]: T[K];
 };
 
+export interface CustomHTTPError extends Error {
+  readonly request: Request;
+  readonly response: Response;
+  readonly status: number;
+  readonly url: string;
+}
+
+export type HTTPErrorCreator = (
+  req: Request,
+  res: Response,
+) => CustomHTTPError | Promise<CustomHTTPError>;
+
+export class HTTPError extends Error implements CustomHTTPError {
+  readonly status: number;
+
+  constructor(
+    public readonly request: Request,
+    public readonly response: Response,
+    public readonly text?: string,
+    public readonly json?: unknown,
+  ) {
+    super(`${response.status} ${response.statusText}`);
+    this.name = "HTTPError";
+    this.status = response.status;
+  }
+
+  get url() {
+    return this.request.url;
+  }
+
+  static async create(req: Request, res: Response) {
+    if (!res.body) {
+      return new HTTPError(req, res);
+    }
+
+    let text: string;
+    try {
+      text = await res.text();
+    } catch (_) {
+      return new HTTPError(req, res);
+    }
+
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch (_) {
+      return new HTTPError(req, res, text);
+    }
+
+    return new HTTPError(req, res, text, json);
+  }
+}
+
 type IsExtends<A, B> = A extends B ? true : false;
 
 /**
@@ -251,6 +304,11 @@ export interface Client<
   _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
   setOptions(
     options: Omit<RequestOptions, "headers"> & T_RequestOptions,
+  ): NonNullable<this["__T_ReturnThis"]>;
+
+  _errorCreator: HTTPErrorCreator;
+  serErrorCreator(
+    errorCreator: HTTPErrorCreator,
   ): NonNullable<this["__T_ReturnThis"]>;
 
   _middlewares: FetchMiddleware[];
@@ -385,6 +443,11 @@ export const clientCore: Client = {
     this._options = { ...this._options, ...options };
     return this;
   },
+  _errorCreator: HTTPError.create,
+  serErrorCreator(errorCreator) {
+    this._errorCreator = errorCreator;
+    return this;
+  },
   _middlewares: [],
   addMiddleware(middleware) {
     this._middlewares.push(middleware);
@@ -418,12 +481,15 @@ export const clientCore: Client = {
 
     const req = new Request(url, opts);
 
-    const _fetch: FetchLike = cleaners.length
-      ? (req) =>
-        globalThis.fetch(req).finally(() => {
-          for (const cleaner of cleaners) cleaner();
-        })
-      : globalThis.fetch;
+    const _fetch: FetchLike = async (req) => {
+      try {
+        const res = await globalThis.fetch(req);
+        if (res.ok) return res;
+        throw await this._errorCreator(req, res);
+      } finally {
+        for (const cleaner of cleaners) cleaner();
+      }
+    };
 
     const wrappedFetch = linkMiddlewares(this._middlewares)(_fetch);
 
