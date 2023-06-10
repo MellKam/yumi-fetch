@@ -6,3 +6,4 @@ export * from "./response_events.ts";
 export * from "./abort.ts";
 export * from "./retry.ts";
 export * from "./auth.ts";
+export * from "./progress.ts";
