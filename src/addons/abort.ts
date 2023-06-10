@@ -1,11 +1,13 @@
-import { Addon } from "../core.ts";
+import { Addon, Client } from "../core.ts";
 
 export type OnAbort = (req: Request, err: DOMException) => void;
 
 export interface AbortEvents {
   _onAbort: OnAbort[];
-  /** @ts-expect-error */
-  onAbort(callback: OnAbort): NonNullable<this["__T_ReturnThis"]>;
+  onAbort<T_Self extends AbortEvents>(
+    this: Client<T_Self> & T_Self,
+    callback: OnAbort,
+  ): this;
 }
 
 export const abort: Addon<AbortEvents, { timeout: number }> = (client) => {

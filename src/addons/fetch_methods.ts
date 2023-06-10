@@ -1,4 +1,4 @@
-import { Addon, HTTPMethod } from "../core.ts";
+import { Addon, Client, HTTPMethod, RequestOptions } from "../core.ts";
 
 const HTTP_METHODS: readonly HTTPMethod[] = [
   "GET",
@@ -6,80 +6,37 @@ const HTTP_METHODS: readonly HTTPMethod[] = [
   "PUT",
   "PATCH",
   "DELETE",
-  "HEAD",
-  "OPTIONS",
-  "TRACE",
-  "CONNECT",
 ] as const;
 
-export interface FetchMethods extends Record<Lowercase<HTTPMethod>, unknown> {
-  get(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  post(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  put(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  patch(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  delete(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  head(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  options(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  trace(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-  connect(
-    resource: URL | string,
-    /** @ts-expect-error */
-    options?: Parameters<this["fetch"]>[1],
-    /** @ts-expect-error */
-  ): ReturnType<this["fetch"]>;
-}
+type FetchMethod = <
+  T_RequestOptions,
+  T_Resolvers,
+>(
+  this: Client<unknown, T_RequestOptions, T_Resolvers>,
+  resource: URL | string,
+  options?: Exclude<RequestOptions & Partial<T_RequestOptions>, "method">,
+) => Promise<Response> & T_Resolvers;
+
+export type FetchMethods = {
+  [_ in Lowercase<HTTPMethod>]: FetchMethod;
+};
 
 export const fetchMethods: Addon<FetchMethods> = (client) => {
   const methods = {} as FetchMethods;
 
   for (const method of HTTP_METHODS) {
-    methods[method.toLowerCase() as keyof FetchMethods] = function (
+    methods[method.toLowerCase() as keyof FetchMethods] = function <
+      T_RequestOptions,
+      T_Resolvers,
+    >(
+      this: Client<unknown, T_RequestOptions, T_Resolvers>,
       resource: URL | string,
-      /** @ts-expect-error */
-      options: Omit<Parameters<this["fetch"]>[1], "method"> = {},
+      options = {} as Exclude<
+        RequestOptions & Partial<T_RequestOptions>,
+        "method"
+      >,
     ) {
-      (options as RequestInit).method = method.toUpperCase();
-      /** @ts-expect-error */
+      (options as RequestInit).method = method;
       return this.fetch(resource, options);
     };
   }
