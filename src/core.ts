@@ -1,14 +1,3 @@
-export type HTTPMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "CONNECT"
-  | "DELETE"
-  | "HEAD"
-  | "OPTIONS"
-  | "TRACE";
-
 /**
  * Represents a set of the most frequently used HTTP headers.
  */
@@ -55,7 +44,6 @@ export type RequestOptions =
   & RequestInit
   & {
     headers?: BetterHeaderInit;
-    method?: HTTPMethod;
   };
 
 export type FetchLike = (req: Request) => Promise<Response>;
@@ -65,7 +53,7 @@ export type FetchMiddleware = (
 
 export type AfterResponseCleaner = () => void;
 export type BeforeRequestCallback<
-  T_RequestOptions extends Record<string, any> = {},
+  T_RequestOptions = unknown,
 > = (
   url: URL,
   options:
@@ -74,9 +62,30 @@ export type BeforeRequestCallback<
     & Partial<T_RequestOptions>,
 ) => void | AfterResponseCleaner;
 
-export type ResponsePromise =
-  & Promise<Response>
-  & { _req: Request };
+export interface ResponsePromise<T_Resolvers = unknown>
+  extends Promise<Response> {
+  _req: Request;
+  _fetch: FetchLike;
+  _then(
+    onfulfilled?:
+      | ((value: Response) => Response | PromiseLike<Response>)
+      | undefined
+      | null,
+    onrejected?:
+      | ((reason: any) => Response | PromiseLike<Response>)
+      | undefined
+      | null,
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  _catch(
+    onrejected?:
+      | ((reason: any) => Response | PromiseLike<Response>)
+      | undefined
+      | null,
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  _finally(
+    onfinally?: (() => void) | undefined | null,
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+}
 
 /**
  * A function that will be attached to `ResponsePromise` and will have the capability to execute a fetch promise while modifying the original request.
@@ -97,27 +106,42 @@ export type Resolver = (
 ) => Promise<unknown>;
 export type Resolvers = Record<string, Resolver>;
 
-const createResponsePromise = (
-  fetcher: FetchLike,
+const createResponsePromise = <T_Resolvers>(
+  fetch: FetchLike,
   req: Request,
-): ResponsePromise => {
+  resolvers: T_Resolvers,
+) => {
   return {
+    ...resolvers,
+    _fetch: fetch,
     _req: req,
+    _then(onfulfilled, onrejected) {
+      return {
+        ...this,
+        _fetch: (req) => this._fetch(req).then(onfulfilled, onrejected),
+      };
+    },
+    _catch(onrejected) {
+      return { ...this, _fetch: (req) => this._fetch(req).catch(onrejected) };
+    },
+    _finally(onfinally) {
+      return { ...this, _fetch: (req) => this._fetch(req).finally(onfinally) };
+    },
     then(onfulfilled, onrejected) {
-      return fetcher(this._req).then(onfulfilled, onrejected);
+      return this._fetch(this._req).then(onfulfilled, onrejected);
     },
     catch(onrejected) {
-      return fetcher(this._req).catch(onrejected);
+      return this._fetch(this._req).catch(onrejected);
     },
     finally(onfinally) {
-      return fetcher(this._req).finally(onfinally);
+      return this._fetch(this._req).finally(onfinally);
     },
     [Symbol.toStringTag]: "Promise",
-  };
+  } as ResponsePromise<T_Resolvers> & T_Resolvers;
 };
 
 export type ExtendOptions<
-  T_RequestOptions extends Record<string, any> = {},
+  T_RequestOptions = unknown,
 > = {
   baseURL?: string | URL;
   headers?: BetterHeaderInit;
@@ -144,12 +168,12 @@ export type ExtendOptions<
  * @template D_Resolvers (Resolvers dependecies) - Dependencies on client `Resolvers` generic.
  */
 export type Addon<
-  M_Self extends Record<string, any> = {},
-  M_RequestOptions extends Record<string, any> = {},
-  M_Resolvers extends Resolvers = {},
-  D_Self extends Record<string, any> = {},
-  D_RequestOptions extends Record<string, any> = {},
-  D_Resolvers extends Resolvers = {},
+  M_Self = unknown,
+  M_RequestOptions = unknown,
+  M_Resolvers = unknown,
+  D_Self = unknown,
+  D_RequestOptions = unknown,
+  D_Resolvers = unknown,
 > = <
   C_Self extends D_Self,
   C_RequestOptinos extends D_RequestOptions,
@@ -159,16 +183,14 @@ export type Addon<
     & Client<
       C_Self & M_Self,
       C_RequestOptinos & M_RequestOptions,
-      C_Resolvers & M_Resolvers,
-      false
+      C_Resolvers & M_Resolvers
     >
     & C_Self,
 ) =>
   & Client<
     C_Self & M_Self,
     C_RequestOptinos & M_RequestOptions,
-    C_Resolvers & M_Resolvers,
-    false
+    C_Resolvers & M_Resolvers
   >
   & C_Self
   & M_Self;
@@ -187,6 +209,56 @@ export type Addon<
 export type PublicOnly<T> = {
   [K in keyof T as Exclude<K, `_${string}`>]: T[K];
 };
+
+export interface CustomHTTPError extends Error {
+  readonly response: Response;
+  readonly status: number;
+  readonly url: string;
+}
+
+export type HTTPErrorCreator = (
+  res: Response,
+) => CustomHTTPError | Promise<CustomHTTPError>;
+
+export class HTTPError extends Error implements CustomHTTPError {
+  readonly status: number;
+
+  constructor(
+    public readonly response: Response,
+    public readonly text?: string,
+    public readonly json?: unknown,
+  ) {
+    super(`${response.status} ${response.statusText}`);
+    this.name = "HTTPError";
+    this.status = response.status;
+  }
+
+  get url() {
+    return this.response.url;
+  }
+
+  static async create(res: Response) {
+    if (!res.body) {
+      return new HTTPError(res);
+    }
+
+    let text: string;
+    try {
+      text = await res.text();
+    } catch (_) {
+      return new HTTPError(res);
+    }
+
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch (_) {
+      return new HTTPError(res, text);
+    }
+
+    return new HTTPError(res, text, json);
+  }
+}
 
 type IsExtends<A, B> = A extends B ? true : false;
 
@@ -212,85 +284,64 @@ type AllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
  * @template T_Self - Allows you to extend the client with custom properties
  * @template T_RequestOptions - Allows you to extend request options with custom properties
  * @template T_Resolvers - Allows you to extend the response promise with custom methods, referred to as resolvers
- * @template T_IsPublicOnly - Boolean value indicating whether the client will hide private properties
  */
 export interface Client<
-  T_Self extends Record<string, any> = {},
-  T_RequestOptions extends Record<string, any> = {},
-  T_Resolvers extends Resolvers = {},
-  T_IsPublicOnly extends boolean = true,
+  T_Self = unknown,
+  T_RequestOptions = unknown,
+  T_Resolvers = unknown,
 > {
-  /**
-   * @internal
-   * The purpose of this field is to make typescript work with generic inference in intersection types. It will not be initialized on the javascript side, so it will always be `undefined`.
-   */
-  __T_Self?: T_Self;
-  /**
-   * This is a small hack for reusing types in and out of the interface. It will not be initialized on the javascript side, so it will always be `undefined`.
-   *
-   * @example
-   * ```ts
-   * // This way you can create chainable methods for your addon
-   * interface MyAddonModifications {
-   *   //@ts-expect-error
-   *   myMethod(): NonNullable<this["__T_ReturnThis"]>;
-   * }
-   * ```
-   */
-  __T_ReturnThis?: T_IsPublicOnly extends true
-    ? PublicOnly<Client<T_Self, T_RequestOptions, T_Resolvers, true> & T_Self>
-    : Client<T_Self, T_RequestOptions, T_Resolvers, false> & T_Self;
-
   _baseURL: URL | undefined;
 
   _headers: Headers;
   setHeaders(
     init: BetterHeaderInit,
-  ): NonNullable<this["__T_ReturnThis"]>;
+  ): this;
 
   _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
   setOptions(
     options: Omit<RequestOptions, "headers"> & T_RequestOptions,
-  ): NonNullable<this["__T_ReturnThis"]>;
+  ): this;
+
+  _errorCreator: HTTPErrorCreator;
+  serErrorCreator(
+    errorCreator: HTTPErrorCreator,
+  ): this;
 
   _middlewares: FetchMiddleware[];
   addMiddleware(
     middleware: FetchMiddleware,
-  ): NonNullable<this["__T_ReturnThis"]>;
+  ): this;
 
   _beforeRequest: BeforeRequestCallback<T_RequestOptions>[];
   beforeRequest(
     callback: BeforeRequestCallback<T_RequestOptions>,
-  ): NonNullable<this["__T_ReturnThis"]>;
+  ): this;
 
   _resolvers: T_Resolvers | null;
-  addResolvers<
-    M_Resolvers extends Resolvers,
-  >(
-    resolvers: M_Resolvers,
-  ): T_IsPublicOnly extends true ? PublicOnly<
-      Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers, true> & T_Self
-    >
-    :
-      & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers, false>
-      & T_Self;
+  addResolvers<M_Resolvers>(
+    resolvers:
+      & M_Resolvers
+      & ThisType<ResponsePromise<T_Resolvers> & T_Resolvers & M_Resolvers>,
+  ):
+    & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
+    & T_Self;
 
   fetch(
     resource: URL | string,
     options?: RequestOptions & Partial<T_RequestOptions>,
-  ): Promise<Response> & T_Resolvers;
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
 
   extend(
     options: ExtendOptions,
-  ): NonNullable<this["__T_ReturnThis"]>;
+  ): this;
 
   addon<
-    M_Self extends Record<string, any> = {},
-    M_RequestOptions extends Record<string, any> = {},
-    M_Resolvers extends Resolvers = {},
-    D_Self extends Record<string, any> = {},
-    D_RequestOptions extends Record<string, any> = {},
-    D_Resolvers extends Resolvers = {},
+    M_Self = unknown,
+    M_RequestOptions = unknown,
+    M_Resolvers = unknown,
+    D_Self = unknown,
+    D_RequestOptions = unknown,
+    D_Resolvers = unknown,
   >(
     addon: Addon<
       M_Self,
@@ -307,22 +358,11 @@ export interface Client<
       IsExtends<T_Resolvers, D_Resolvers>,
     ],
     true
-  > extends true ? T_IsPublicOnly extends true ? PublicOnly<
-        & Client<
-          T_Self & M_Self,
-          T_RequestOptions & M_RequestOptions,
-          T_Resolvers & M_Resolvers,
-          true
-        >
-        & T_Self
-        & M_Self
-      >
-    :
+  > extends true ?
       & Client<
         T_Self & M_Self,
         T_RequestOptions & M_RequestOptions,
-        T_Resolvers & M_Resolvers,
-        false
+        T_Resolvers & M_Resolvers
       >
       & T_Self
       & M_Self
@@ -385,6 +425,11 @@ export const clientCore: Client = {
     this._options = { ...this._options, ...options };
     return this;
   },
+  _errorCreator: HTTPError.create,
+  serErrorCreator(errorCreator) {
+    this._errorCreator = errorCreator;
+    return this;
+  },
   _middlewares: [],
   addMiddleware(middleware) {
     this._middlewares.push(middleware);
@@ -397,7 +442,7 @@ export const clientCore: Client = {
   },
   _resolvers: null,
   addResolvers(resolvers) {
-    this._resolvers = { ...this._resolvers, ...resolvers };
+    this._resolvers = { ...this._resolvers as Resolvers, ...resolvers };
     return this as any;
   },
   fetch(resource, options = {}) {
@@ -418,21 +463,19 @@ export const clientCore: Client = {
 
     const req = new Request(url, opts);
 
-    const _fetch: FetchLike = cleaners.length
-      ? (req) =>
-        globalThis.fetch(req).finally(() => {
-          for (const cleaner of cleaners) cleaner();
-        })
-      : globalThis.fetch;
+    const _fetch: FetchLike = async (req) => {
+      try {
+        const res = await globalThis.fetch(req);
+        if (res.ok) return res;
+        throw await this._errorCreator(res);
+      } finally {
+        for (const cleaner of cleaners) cleaner();
+      }
+    };
 
     const wrappedFetch = linkMiddlewares(this._middlewares)(_fetch);
 
-    return this._resolvers
-      ? {
-        ...createResponsePromise(wrappedFetch, req),
-        ...this._resolvers,
-      }
-      : wrappedFetch(req);
+    return createResponsePromise(wrappedFetch, req, this._resolvers);
   },
   addon(addon) {
     return addon(this as any);
@@ -446,14 +489,3 @@ export const clientCore: Client = {
     };
   },
 };
-
-export type ToPublicClient<T extends Client<any, any, any, false>> = T extends
-  Client<infer T_Self, infer T_RequestOptinos, infer T_Resolvers, false>
-  ? PublicOnly<Client<T_Self, T_RequestOptinos, T_Resolvers, true>> & T_Self
-  : never;
-
-export type ToPrivateClient<T extends PublicOnly<Client<any, any, any, true>>> =
-  T extends PublicOnly<
-    Client<infer T_Self, infer T_RequestOptinos, infer T_Resolvers, true>
-  > ? Client<T_Self, T_RequestOptinos, T_Resolvers, false> & T_Self
-    : never;

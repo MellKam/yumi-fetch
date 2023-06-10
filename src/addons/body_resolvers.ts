@@ -19,8 +19,8 @@ export type BodyResolvers<JSONType = unknown> = {
 };
 
 export const bodyResolvers = <JSONType = unknown>(): Addon<
-  {},
-  {},
+  unknown,
+  unknown,
   BodyResolvers<JSONType>
 > =>
 (client) => {

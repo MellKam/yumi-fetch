@@ -8,6 +8,8 @@
     "noImplicitReturns": true,
     "noUnusedParameters": true,
     "emitDeclarationOnly": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitThis": true,
     "declaration": true,
     "strict": true,
     "removeComments": false,
@@ -21,7 +23,7 @@
     "isolatedModules": true,
     "ignoreDeprecations": "5.0",
     "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
+    "allowUnusedLabels": false
   },
   "include": ["./src/**/*.ts"],
   "exclude": ["node_modules"]

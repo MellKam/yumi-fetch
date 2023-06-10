@@ -1,4 +1,4 @@
-import { Addon } from "../core.ts";
+import { Addon, Client } from "../core.ts";
 
 export type RetyrUntil = (
   res?: Response,
@@ -47,8 +47,10 @@ export class MaxRetryAttemptsError extends Error {
 
 interface RetryEvent {
   _onRetry: OnRetry[];
-  /** @ts-expect-error */
-  onRetry(callback: OnRetry): NonNullable<this["__T_ReturnThis"]>;
+  onRetry<T_Self extends RetryEvent>(
+    this: Client<T_Self> & T_Self,
+    callback: OnRetry,
+  ): this;
 }
 
 export const retry =

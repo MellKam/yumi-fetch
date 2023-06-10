@@ -1,7 +1,6 @@
 import { clientCore } from "./core.ts";
 import {
   bodyResolvers,
-  errorHandler,
   fetchMethods,
   jsonSerializer,
   querySerializer,
@@ -15,8 +14,7 @@ export const yumi = clientCore
   .addon(fetchMethods)
   .addon(bodyResolvers())
   .addon(querySerializer)
-  .addon(jsonSerializer())
-  .addon(errorHandler);
+  .addon(jsonSerializer());
 
 export type Yumi = typeof yumi;
 

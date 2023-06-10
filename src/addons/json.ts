@@ -13,7 +13,7 @@ export interface JSONObject {
 }
 
 export const jsonSerializer =
-  <JSONType = unknown>(): Addon<{}, { json: JSONType }> => (client) =>
+  <JSONType = unknown>(): Addon<unknown, { json: JSONType }> => (client) =>
     client.beforeRequest((_, opts) => {
       if (!opts.body && opts.json) {
         opts.headers.set("Content-Type", "application/json");
