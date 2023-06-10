@@ -1,4 +1,11 @@
-import { Addon, Client, HTTPMethod, RequestOptions } from "../core.ts";
+import { Addon, Client, RequestOptions, ResponsePromise } from "../core.ts";
+
+export type HTTPMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE";
 
 const HTTP_METHODS: readonly HTTPMethod[] = [
   "GET",
@@ -15,7 +22,7 @@ type FetchMethod = <
   this: Client<unknown, T_RequestOptions, T_Resolvers>,
   resource: URL | string,
   options?: Exclude<RequestOptions & Partial<T_RequestOptions>, "method">,
-) => Promise<Response> & T_Resolvers;
+) => ResponsePromise<T_Resolvers> & T_Resolvers;
 
 export type FetchMethods = {
   [_ in Lowercase<HTTPMethod>]: FetchMethod;

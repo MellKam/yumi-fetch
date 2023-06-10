@@ -1,14 +1,3 @@
-export type HTTPMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "CONNECT"
-  | "DELETE"
-  | "HEAD"
-  | "OPTIONS"
-  | "TRACE";
-
 /**
  * Represents a set of the most frequently used HTTP headers.
  */
@@ -55,7 +44,6 @@ export type RequestOptions =
   & RequestInit
   & {
     headers?: BetterHeaderInit;
-    method?: HTTPMethod;
   };
 
 export type FetchLike = (req: Request) => Promise<Response>;
@@ -74,9 +62,30 @@ export type BeforeRequestCallback<
     & Partial<T_RequestOptions>,
 ) => void | AfterResponseCleaner;
 
-export type ResponsePromise =
-  & Promise<Response>
-  & { _req: Request };
+export interface ResponsePromise<T_Resolvers = unknown>
+  extends Promise<Response> {
+  _req: Request;
+  _fetch: FetchLike;
+  _then(
+    onfulfilled?:
+      | ((value: Response) => Response | PromiseLike<Response>)
+      | undefined
+      | null,
+    onrejected?:
+      | ((reason: any) => Response | PromiseLike<Response>)
+      | undefined
+      | null,
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  _catch(
+    onrejected?:
+      | ((reason: any) => Response | PromiseLike<Response>)
+      | undefined
+      | null,
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  _finally(
+    onfinally?: (() => void) | undefined | null,
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+}
 
 /**
  * A function that will be attached to `ResponsePromise` and will have the capability to execute a fetch promise while modifying the original request.
@@ -97,27 +106,42 @@ export type Resolver = (
 ) => Promise<unknown>;
 export type Resolvers = Record<string, Resolver>;
 
-const createResponsePromise = (
-  fetcher: FetchLike,
+const createResponsePromise = <T_Resolvers>(
+  fetch: FetchLike,
   req: Request,
-): ResponsePromise => {
+  resolvers: T_Resolvers,
+) => {
   return {
+    ...resolvers,
+    _fetch: fetch,
     _req: req,
+    _then(onfulfilled, onrejected) {
+      return {
+        ...this,
+        _fetch: (req) => this._fetch(req).then(onfulfilled, onrejected),
+      };
+    },
+    _catch(onrejected) {
+      return { ...this, _fetch: (req) => this._fetch(req).catch(onrejected) };
+    },
+    _finally(onfinally) {
+      return { ...this, _fetch: (req) => this._fetch(req).finally(onfinally) };
+    },
     then(onfulfilled, onrejected) {
-      return fetcher(this._req).then(onfulfilled, onrejected);
+      return this._fetch(this._req).then(onfulfilled, onrejected);
     },
     catch(onrejected) {
-      return fetcher(this._req).catch(onrejected);
+      return this._fetch(this._req).catch(onrejected);
     },
     finally(onfinally) {
-      return fetcher(this._req).finally(onfinally);
+      return this._fetch(this._req).finally(onfinally);
     },
     [Symbol.toStringTag]: "Promise",
-  };
+  } as ResponsePromise<T_Resolvers> & T_Resolvers;
 };
 
 export type ExtendOptions<
-  T_RequestOptions extends Record<string, any> = {},
+  T_RequestOptions = unknown,
 > = {
   baseURL?: string | URL;
   headers?: BetterHeaderInit;
@@ -187,14 +211,12 @@ export type PublicOnly<T> = {
 };
 
 export interface CustomHTTPError extends Error {
-  readonly request: Request;
   readonly response: Response;
   readonly status: number;
   readonly url: string;
 }
 
 export type HTTPErrorCreator = (
-  req: Request,
   res: Response,
 ) => CustomHTTPError | Promise<CustomHTTPError>;
 
@@ -202,7 +224,6 @@ export class HTTPError extends Error implements CustomHTTPError {
   readonly status: number;
 
   constructor(
-    public readonly request: Request,
     public readonly response: Response,
     public readonly text?: string,
     public readonly json?: unknown,
@@ -213,29 +234,29 @@ export class HTTPError extends Error implements CustomHTTPError {
   }
 
   get url() {
-    return this.request.url;
+    return this.response.url;
   }
 
-  static async create(req: Request, res: Response) {
+  static async create(res: Response) {
     if (!res.body) {
-      return new HTTPError(req, res);
+      return new HTTPError(res);
     }
 
     let text: string;
     try {
       text = await res.text();
     } catch (_) {
-      return new HTTPError(req, res);
+      return new HTTPError(res);
     }
 
     let json: unknown;
     try {
       json = JSON.parse(text);
     } catch (_) {
-      return new HTTPError(req, res, text);
+      return new HTTPError(res, text);
     }
 
-    return new HTTPError(req, res, text, json);
+    return new HTTPError(res, text, json);
   }
 }
 
@@ -298,7 +319,9 @@ export interface Client<
 
   _resolvers: T_Resolvers | null;
   addResolvers<M_Resolvers>(
-    resolvers: M_Resolvers,
+    resolvers:
+      & M_Resolvers
+      & ThisType<ResponsePromise<T_Resolvers> & T_Resolvers & M_Resolvers>,
   ):
     & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
     & T_Self;
@@ -306,7 +329,7 @@ export interface Client<
   fetch(
     resource: URL | string,
     options?: RequestOptions & Partial<T_RequestOptions>,
-  ): Promise<Response> & T_Resolvers;
+  ): ResponsePromise<T_Resolvers> & T_Resolvers;
 
   extend(
     options: ExtendOptions,
@@ -444,7 +467,7 @@ export const clientCore: Client = {
       try {
         const res = await globalThis.fetch(req);
         if (res.ok) return res;
-        throw await this._errorCreator(req, res);
+        throw await this._errorCreator(res);
       } finally {
         for (const cleaner of cleaners) cleaner();
       }
@@ -452,12 +475,7 @@ export const clientCore: Client = {
 
     const wrappedFetch = linkMiddlewares(this._middlewares)(_fetch);
 
-    return this._resolvers
-      ? {
-        ...createResponsePromise(wrappedFetch, req),
-        ...this._resolvers,
-      }
-      : wrappedFetch(req);
+    return createResponsePromise(wrappedFetch, req, this._resolvers);
   },
   addon(addon) {
     return addon(this as any);
