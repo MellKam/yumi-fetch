@@ -19,4 +19,3 @@ export const yumi = clientCore
 export type Yumi = typeof yumi;
 
 export * from "./core.ts";
-export * from "./addons/mod.ts";

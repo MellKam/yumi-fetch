@@ -18,6 +18,26 @@
     "url": "https://github.com/MellKam"
   },
   "sideEffects": false,
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/mod.d.ts"
+    },
+    "./addons": {
+      "default": "./dist/addons.js",
+      "import": "./dist/addons.js",
+      "require": "./dist/addons.cjs",
+      "types": "./dist/addons/mod.d.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "index": ["./dist/mod.d.ts"],
+      "addons": ["./dist/addons/mod.d.ts"]
+    }
+  },
   "packageManager": "pnpm@8.6.1",
   "license": "MIT",
   "repository": "github:MellKam/yumi-fetch",

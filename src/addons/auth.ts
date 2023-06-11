@@ -35,7 +35,7 @@ export const auth = (
   }: AuthOptions,
 ): Addon => {
   return (client) => {
-    client.addMiddleware((next) => async (req) => {
+    client.addMiddleware((next) => async (url, opts) => {
       let isTokenRefreshed = false;
 
       const setToken = async (useSavedToken: boolean) => {
@@ -51,20 +51,20 @@ export const auth = (
             });
         }
 
-        req.headers.set("Authorization", tokenFormatter(token));
+        opts.headers.set("Authorization", tokenFormatter(token));
       };
 
       await setToken(true);
 
       try {
-        return await next(req);
+        return await next(url, opts);
       } catch (err) {
         if (
           typeof err === "object" && err !== null && "status" in err &&
           err.status === 401 && !isTokenRefreshed
         ) {
           await setToken(false);
-          return await next(req);
+          return await next(url, opts);
         }
         throw err;
       }

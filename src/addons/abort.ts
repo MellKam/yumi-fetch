@@ -1,6 +1,10 @@
-import { Addon, Client } from "../core.ts";
+import { Addon, Client, MergedRequestOptions } from "../core.ts";
 
-export type OnAbort = (req: Request, err: DOMException) => void;
+export type OnAbort = <T_RequestOptions = unknown>(
+  url: URL,
+  opts: MergedRequestOptions<T_RequestOptions>,
+  err: DOMException,
+) => void;
 
 export interface AbortEvents {
   _onAbort: OnAbort[];
@@ -23,11 +27,11 @@ export const abort: Addon<AbortEvents, { timeout: number }> = (client) => {
     return () => clearTimeout(timeoutID);
   });
 
-  client.addMiddleware((next) => (req) => {
-    return next(req).catch((error) => {
+  client.addMiddleware((next) => (url, opts) => {
+    return next(url, opts).catch((error) => {
       if (error.name === "AbortError") {
         for (const callback of _onAbort) {
-          callback(req, error);
+          callback(url, opts, error);
         }
       }
       throw error;

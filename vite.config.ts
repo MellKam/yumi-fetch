@@ -3,9 +3,11 @@ import { defineConfig } from "npm:vite";
 export default defineConfig({
   build: {
     lib: {
-      entry: "./src/mod.ts",
+      entry: {
+        index: "./src/mod.ts",
+        addons: "./src/addons/mod.ts",
+      },
       formats: ["cjs", "es"],
-      fileName: "index",
     },
     rollupOptions: {
       output: {

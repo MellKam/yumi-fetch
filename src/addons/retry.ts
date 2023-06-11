@@ -1,31 +1,36 @@
-import { Addon, Client } from "../core.ts";
+import { Addon, Client, MergedRequestOptions } from "../core.ts";
 
-export type RetyrUntil = (
+export type RetryUntil = (
   res?: Response,
   error?: unknown,
 ) => boolean | Promise<boolean>;
 
-export type SkipRetry = (req: Request) => boolean;
-
-type RetryData = {
-  readonly req: Request;
+type RetryData<T_RequestOptions> = {
+  readonly url: URL;
+  readonly options: MergedRequestOptions<T_RequestOptions>;
   readonly res?: Response;
   readonly error?: unknown;
   readonly attemptsMade: number;
 };
 
-export type OnRetry = (
-  data: RetryData,
+export type OnRetry = <T_RequestOptions>(
+  data: RetryData<T_RequestOptions>,
 ) => void | Promise<void>;
 
-const retryUntil: RetyrUntil = (res, err) =>
-  !!err || (!!res && res.status < 500);
+const retryUntil: RetryUntil = (res, err) =>
+  !res || (typeof err === "object" && err !== null && "status" in err &&
+    typeof err.status === "number" && err.status < 500);
 
 export type RetryOptoins = {
+  /**
+   * @default 0
+   */
   delayTimer: number;
+  /**
+   * @default 10
+   */
   maxAttempts: number;
-  retryUntil: RetyrUntil;
-  skip?: SkipRetry;
+  retryUntil: RetryUntil;
 };
 
 const defaultRetryOptions: RetryOptoins = {
@@ -54,20 +59,24 @@ interface RetryEvent {
 }
 
 export const retry =
-  (options: Partial<RetryOptoins> = {}): Addon<RetryEvent> => (client) => {
-    const { skip, delayTimer, maxAttempts, retryUntil } = {
-      ...defaultRetryOptions,
-      ...options,
-    };
-
+  (globalOptions?: Partial<RetryOptoins>): Addon<RetryEvent, {
+    retry: Partial<RetryOptoins>;
+  }> =>
+  (client) => {
     const _onRetry: OnRetry[] = [];
 
-    client.addMiddleware((next) => async (req) => {
-      let attemptsMade = 0;
+    client.addMiddleware((next) => async (url, opts) => {
+      const localOptions = opts.retry;
 
-      if (skip && skip(req)) {
-        return next(req);
-      }
+      if (!localOptions && !globalOptions) return next(url, opts);
+
+      const { retryUntil, delayTimer, maxAttempts } = {
+        ...defaultRetryOptions,
+        ...globalOptions,
+        ...localOptions,
+      };
+
+      let attemptsMade = 0;
 
       const checkStatus = async (
         res?: Response,
@@ -88,9 +97,10 @@ export const retry =
           });
         }
 
-        const retryData: RetryData = {
+        const retryData = {
           attemptsMade,
-          req,
+          url,
+          options: opts,
           error: err,
           res,
         };
@@ -101,11 +111,11 @@ export const retry =
 
         attemptsMade++;
 
-        return await next(req)
+        return await next(url, opts)
           .then(checkStatus, (error) => checkStatus(undefined, error));
       };
 
-      return await next(req)
+      return await next(url, opts)
         .then(checkStatus, (error) => checkStatus(undefined, error));
     });
 

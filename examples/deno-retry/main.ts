@@ -1,4 +1,5 @@
-import { retry, yumi } from "../../src/mod.ts";
+import { yumi } from "../../src/mod.ts";
+import { retry } from "../../src/addons/mod.ts";
 import * as fetchMock from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
 
 fetchMock.install();
@@ -21,7 +22,8 @@ type Todos = {
 };
 
 const client = yumi.addon(retry({
-  maxAttempts: 1,
+  maxAttempts: 8,
+  delayTimer: 100,
 }));
 
 client.onRetry(({ attemptsMade }) => {
@@ -29,7 +31,12 @@ client.onRetry(({ attemptsMade }) => {
 });
 
 const { todos } = await client
-  .post("https://dummyjson.com/todos")
+  .post("https://dummyjson.com/todos", {
+    retry: {
+      maxAttempts: 3,
+      delayTimer: 200,
+    },
+  })
   .json<Todos>();
 
 console.log(todos);

@@ -1,6 +1,6 @@
 import { Addon, Client } from "../core.ts";
 
-export type OnSuccess = (req: Request, res: Response) => Promise<void> | void;
+export type OnSuccess = (res: Response) => Promise<void> | void;
 export type OnError = (err: unknown) => Promise<void> | void;
 
 export interface ResponseEvents {
@@ -20,11 +20,11 @@ export const responseEvents: Addon<ResponseEvents> = (client) => {
   const _onError: OnError[] = [];
   const _onSuccess: OnSuccess[] = [];
 
-  client.addMiddleware((next) => async (req) => {
+  client.addMiddleware((next) => async (url, opts) => {
     try {
-      const res = await next(req);
+      const res = await next(url, opts);
       for (const callback of _onSuccess) {
-        await callback(req, res);
+        await callback(res);
       }
       return res;
     } catch (error) {

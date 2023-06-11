@@ -46,10 +46,17 @@ export type RequestOptions =
     headers?: BetterHeaderInit;
   };
 
-export type FetchLike = (req: Request) => Promise<Response>;
-export type FetchMiddleware = (
-  next: FetchLike,
-) => FetchLike;
+export type MergedRequestOptions<T_RequestOptions> = RequestOptions & {
+  headers: Headers;
+} & Partial<T_RequestOptions>;
+
+export type FetchLike<T_RequestOptions> = (
+  url: URL,
+  options: MergedRequestOptions<T_RequestOptions>,
+) => Promise<Response>;
+export type FetchMiddleware<T_RequestOptions> = (
+  next: FetchLike<T_RequestOptions>,
+) => FetchLike<T_RequestOptions>;
 
 export type AfterResponseCleaner = () => void;
 export type BeforeRequestCallback<
@@ -62,10 +69,13 @@ export type BeforeRequestCallback<
     & Partial<T_RequestOptions>,
 ) => void | AfterResponseCleaner;
 
-export interface ResponsePromise<T_Resolvers = unknown>
-  extends Promise<Response> {
-  _req: Request;
-  _fetch: FetchLike;
+export interface ResponsePromise<
+  T_RequestOptions = unknown,
+  T_Resolvers = unknown,
+> extends Promise<Response> {
+  _url: URL;
+  _opts: MergedRequestOptions<T_RequestOptions>;
+  _fetch: FetchLike<T_RequestOptions>;
   _then(
     onfulfilled?:
       | ((value: Response) => Response | PromiseLike<Response>)
@@ -106,35 +116,44 @@ export type Resolver = (
 ) => Promise<unknown>;
 export type Resolvers = Record<string, Resolver>;
 
-const createResponsePromise = <T_Resolvers>(
-  fetch: FetchLike,
-  req: Request,
+const createResponsePromise = <T_RequestOptions, T_Resolvers>(
+  fetch: FetchLike<T_RequestOptions>,
+  url: URL,
+  opts: MergedRequestOptions<T_RequestOptions>,
   resolvers: T_Resolvers,
 ) => {
   return {
     ...resolvers,
     _fetch: fetch,
-    _req: req,
+    _url: url,
+    _opts: opts,
     _then(onfulfilled, onrejected) {
       return {
         ...this,
-        _fetch: (req) => this._fetch(req).then(onfulfilled, onrejected),
+        _fetch: (url, opts) =>
+          this._fetch(url, opts).then(onfulfilled, onrejected),
       };
     },
     _catch(onrejected) {
-      return { ...this, _fetch: (req) => this._fetch(req).catch(onrejected) };
+      return {
+        ...this,
+        _fetch: (url, opts) => this._fetch(url, opts).catch(onrejected),
+      };
     },
     _finally(onfinally) {
-      return { ...this, _fetch: (req) => this._fetch(req).finally(onfinally) };
+      return {
+        ...this,
+        _fetch: (url, opts) => this._fetch(url, opts).finally(onfinally),
+      };
     },
     then(onfulfilled, onrejected) {
-      return this._fetch(this._req).then(onfulfilled, onrejected);
+      return this._fetch(this._url, this._opts).then(onfulfilled, onrejected);
     },
     catch(onrejected) {
-      return this._fetch(this._req).catch(onrejected);
+      return this._fetch(this._url, this._opts).catch(onrejected);
     },
     finally(onfinally) {
-      return this._fetch(this._req).finally(onfinally);
+      return this._fetch(this._url, this._opts).finally(onfinally);
     },
     [Symbol.toStringTag]: "Promise",
   } as ResponsePromise<T_Resolvers> & T_Resolvers;
@@ -292,9 +311,9 @@ export interface Client<
     errorCreator: HTTPErrorCreator,
   ): this;
 
-  _middlewares: FetchMiddleware[];
+  _middlewares: FetchMiddleware<T_RequestOptions>[];
   addMiddleware(
-    middleware: FetchMiddleware,
+    middleware: FetchMiddleware<T_RequestOptions>,
   ): this;
 
   _beforeRequest: BeforeRequestCallback<T_RequestOptions>[];
@@ -355,7 +374,8 @@ export interface Client<
 }
 
 const linkMiddlewares =
-  (middlewares: FetchMiddleware[]) => (fetch: FetchLike): FetchLike => {
+  <T_RequestOptions>(middlewares: FetchMiddleware<T_RequestOptions>[]) =>
+  (fetch: FetchLike<T_RequestOptions>): FetchLike<T_RequestOptions> => {
     if (!middlewares.length) return fetch;
     return middlewares.reduceRight((next, mw) => mw(next), fetch);
   };
@@ -459,11 +479,9 @@ export const clientCore: Client = {
       if (cleaner) cleaners.push(cleaner);
     }
 
-    const req = new Request(url, opts);
-
-    const _fetch: FetchLike = async (req) => {
+    const _fetch: FetchLike<unknown> = async (url, opts) => {
       try {
-        const res = await globalThis.fetch(req);
+        const res = await globalThis.fetch(url, opts);
         if (res.ok) return res;
         throw await this._errorCreator(res);
       } finally {
@@ -473,7 +491,7 @@ export const clientCore: Client = {
 
     const wrappedFetch = linkMiddlewares(this._middlewares)(_fetch);
 
-    return createResponsePromise(wrappedFetch, req, this._resolvers);
+    return createResponsePromise(wrappedFetch, url, opts, this._resolvers);
   },
   addon(addon) {
     return addon(this as any);
