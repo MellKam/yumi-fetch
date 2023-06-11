@@ -74,9 +74,12 @@ export const timeout = (
       try {
         return await next(url, opts);
       } catch (error) {
-        if (error.name === "TimeoutError") {
+        if (
+          typeof error === "object" && error !== null &&
+          (error as TimeoutError).name === "TimeoutError"
+        ) {
           for (const callback of _onTimeout) {
-            callback(url, opts, error);
+            callback(url, opts, error as TimeoutError);
           }
         }
         throw error;
