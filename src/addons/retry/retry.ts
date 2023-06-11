@@ -1,4 +1,4 @@
-import { Addon, Client, MergedRequestOptions } from "../core.ts";
+import { Addon, Client, MergedRequestOptions } from "../../core.ts";
 
 export type RetryUntil = (
   res?: Response,

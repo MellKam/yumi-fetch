@@ -1,5 +1,5 @@
-import { yumi } from "../../src/mod.ts";
-import { retry } from "../../src/addons/mod.ts";
+import { yumi } from "../../mod.ts";
+import { retry } from "./retry.ts";
 import * as fetchMock from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
 
 fetchMock.install();

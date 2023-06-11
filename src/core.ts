@@ -70,8 +70,8 @@ export type BeforeRequestCallback<
 ) => void | AfterResponseCleaner;
 
 export interface ResponsePromise<
-  T_RequestOptions = unknown,
-  T_Resolvers = unknown,
+  T_RequestOptions,
+  T_Resolvers,
 > extends Promise<Response> {
   _url: URL;
   _opts: MergedRequestOptions<T_RequestOptions>;
@@ -85,36 +85,17 @@ export interface ResponsePromise<
       | ((reason: any) => Response | PromiseLike<Response>)
       | undefined
       | null,
-  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
   _catch(
     onrejected?:
       | ((reason: any) => Response | PromiseLike<Response>)
       | undefined
       | null,
-  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
   _finally(
     onfinally?: (() => void) | undefined | null,
-  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
-
-/**
- * A function that will be attached to `ResponsePromise` and will have the capability to execute a fetch promise while modifying the original request.
- *
- * Note: Cannot be an arrow function, as context would be lost.
- *
- * @example
- * ```ts
- * function () {
- *   this._req.headers.set("Accept", "application/json");
- *   return (await this).json();
- * }
- * ```
- */
-export type Resolver = (
-  this: ResponsePromise,
-  ...args: unknown[]
-) => Promise<unknown>;
-export type Resolvers = Record<string, Resolver>;
 
 const createResponsePromise = <T_RequestOptions, T_Resolvers>(
   fetch: FetchLike<T_RequestOptions>,
@@ -156,7 +137,7 @@ const createResponsePromise = <T_RequestOptions, T_Resolvers>(
       return this._fetch(this._url, this._opts).finally(onfinally);
     },
     [Symbol.toStringTag]: "Promise",
-  } as ResponsePromise<T_Resolvers> & T_Resolvers;
+  } as ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 };
 
 export type ExtendOptions<
@@ -325,7 +306,11 @@ export interface Client<
   addResolvers<M_Resolvers>(
     resolvers:
       & M_Resolvers
-      & ThisType<ResponsePromise<T_Resolvers> & T_Resolvers & M_Resolvers>,
+      & ThisType<
+        & ResponsePromise<T_RequestOptions, T_Resolvers & M_Resolvers>
+        & T_Resolvers
+        & M_Resolvers
+      >,
   ):
     & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
     & T_Self;
@@ -333,7 +318,7 @@ export interface Client<
   fetch(
     resource: URL | string,
     options?: RequestOptions & Partial<T_RequestOptions>,
-  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 
   extend(
     options: ExtendOptions,
@@ -456,7 +441,11 @@ export const clientCore: Client = {
     this: Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self,
     resolvers:
       & M_Resolvers
-      & ThisType<ResponsePromise<T_Resolvers> & T_Resolvers & M_Resolvers>,
+      & ThisType<
+        & ResponsePromise<T_RequestOptions, T_Resolvers & M_Resolvers>
+        & T_Resolvers
+        & M_Resolvers
+      >,
   ) {
     this._resolvers = { ...this._resolvers, ...resolvers };
     return this as

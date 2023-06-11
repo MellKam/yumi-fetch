@@ -3,10 +3,10 @@ import { Addon, ResponsePromise } from "../core.ts";
 export type ProgressCallback = (loaded: number, total: number | null) => void;
 
 interface Progress {
-  progress<T_Resolvers>(
-    this: ResponsePromise<T_Resolvers>,
+  progress<T_RequestOptions, T_Resolvers>(
+    this: ResponsePromise<T_RequestOptions, T_Resolvers>,
     callback: ProgressCallback,
-  ): ResponsePromise<T_Resolvers> & T_Resolvers;
+  ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
 export const progress: Addon<unknown, unknown, Progress> = (client) => {

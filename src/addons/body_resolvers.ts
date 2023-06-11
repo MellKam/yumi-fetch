@@ -1,4 +1,4 @@
-import { Addon, Resolvers } from "../core.ts";
+import { Addon, ResponsePromise } from "../core.ts";
 
 const BODY_METHODS = {
   json: "application/json",
@@ -24,7 +24,9 @@ export const bodyResolvers = <JSONType = unknown>(): Addon<
   BodyResolvers<JSONType>
 > =>
 (client) => {
-  const bodyResolvers = {} as Resolvers;
+  const bodyResolvers = {} as ResponsePromise<unknown, unknown> & {
+    [x: string]: any;
+  };
 
   for (const contentType in BODY_METHODS) {
     bodyResolvers[contentType] = async function () {
