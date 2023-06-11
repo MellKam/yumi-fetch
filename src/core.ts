@@ -195,22 +195,7 @@ export type Addon<
   & C_Self
   & M_Self;
 
-/**
- * Excludes all properties starting with `_` (underscores) from the object.
- *
- * Since there is no concept of private and public fields in JS objects, we accept the convention that all properties starting with `_` are private and all others are public.
- *
- * @example
- * ```ts
- * type T = PublicOnly<{ foo: string, _bar: number }>;
- * // now T = { foo: string }
- * ```
- */
-export type PublicOnly<T> = {
-  [K in keyof T as Exclude<K, `_${string}`>]: T[K];
-};
-
-export interface CustomHTTPError extends Error {
+export interface IHTTPError extends Error {
   readonly response: Response;
   readonly status: number;
   readonly url: string;
@@ -218,9 +203,9 @@ export interface CustomHTTPError extends Error {
 
 export type HTTPErrorCreator = (
   res: Response,
-) => CustomHTTPError | Promise<CustomHTTPError>;
+) => IHTTPError | Promise<IHTTPError>;
 
-export class HTTPError extends Error implements CustomHTTPError {
+export class HTTPError extends Error implements IHTTPError {
   readonly status: number;
 
   constructor(
@@ -317,7 +302,7 @@ export interface Client<
     callback: BeforeRequestCallback<T_RequestOptions>,
   ): this;
 
-  _resolvers: T_Resolvers | null;
+  _resolvers: T_Resolvers;
   addResolvers<M_Resolvers>(
     resolvers:
       & M_Resolvers
@@ -386,31 +371,37 @@ const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
 };
 
 const mergeURLs = (
-  clientURL?: URL,
+  baseURL?: URL,
   extendURL?: URL | string,
 ): URL | undefined => {
-  if (extendURL) {
-    if (!clientURL) return new URL(extendURL);
+  if (baseURL && extendURL) {
+    if (typeof extendURL === "object") return extendURL;
 
-    return typeof extendURL === "string"
-      ? new URL(extendURL, clientURL)
-      : new URL(extendURL);
+    const basePathname = baseURL.pathname.endsWith("/")
+      ? baseURL.pathname
+      : baseURL + "/";
+    const extendPathname = extendURL.startsWith("/")
+      ? extendURL.slice(1)
+      : extendURL;
+
+    return new URL(basePathname + extendPathname, baseURL.origin);
   }
 
-  return clientURL ? new URL(clientURL) : undefined;
+  if (baseURL) return baseURL;
+  if (extendURL) return new URL(extendURL);
+  return;
 };
 
 /**
  * The plain object that implements `Client` interface.
  * You don't need to instantiate it to use it, as you do with classes.
- * If you need multiple instances, you can clone it with `extend()` method.
  *
  * #### Why plain object and not class ???
  * There were many attempts to write it in classes, but nothing succeeded. It was especially difficult to satisfy typescript. So it was decided to choose objects instead of classes.
  * In spite of this, in some places we still have to lie to the about types.
  *
  * #### Concept of public and private fields
- * Basically, since we don't use classes, we have to manage our private fields ourselves. In our case, we treat fields starting with `_` (underscore) as private, and any others as public. We can hide private fields from the typescript side using the generic `T_IsPublicOnly`.
+ * Basically, since we don't use classes, we have to manage our private fields ourselves. In our case, we treat fields starting with `_` (underscore) as private, and any others as public.
  */
 export const clientCore: Client = {
   _baseURL: undefined,
@@ -441,9 +432,16 @@ export const clientCore: Client = {
     return this;
   },
   _resolvers: null,
-  addResolvers(resolvers) {
-    this._resolvers = { ...this._resolvers as Resolvers, ...resolvers };
-    return this as any;
+  addResolvers<T_Self, T_RequestOptions, T_Resolvers, M_Resolvers>(
+    this: Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self,
+    resolvers:
+      & M_Resolvers
+      & ThisType<ResponsePromise<T_Resolvers> & T_Resolvers & M_Resolvers>,
+  ) {
+    this._resolvers = { ...this._resolvers, ...resolvers };
+    return this as
+      & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
+      & T_Self;
   },
   fetch(resource, options = {}) {
     const url = typeof resource === "string"

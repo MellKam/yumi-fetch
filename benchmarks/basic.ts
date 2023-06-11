@@ -31,12 +31,6 @@ type Post = {
   userId: number;
 };
 
-type CreatePostDTO = {
-  title: string;
-  body: string;
-  userId: number;
-};
-
 // --------- Fetch ---------
 
 Deno.bench("fetch", { baseline: true }, async () => {
@@ -113,26 +107,6 @@ Deno.bench("ky", async () => {
   }).json<Post>();
 });
 
-// --------- GOT ---------
-
-// import GOT from "npm:got";
-
-// Deno.bench("Got", async () => {
-//   const got = GOT.extend({
-//     prefixUrl: "https://jsonplaceholder.typicode.com/",
-//     headers: { "hello": "world" },
-//   });
-
-//   const post = await got
-//     .post("posts", {
-//       json: {
-//         title: "foo",
-//         body: "safasdd",
-//         userId: 2,
-//       },
-//     }).json<Post>();
-// });
-
 // --------- YA ---------
 
 import { create } from "npm:ya-fetch";
@@ -152,21 +126,3 @@ Deno.bench("Ya", async () => {
       },
     }).json<Post>();
 });
-
-// --------- Axios ---------
-
-// import axios from "npm:axios";
-
-// Deno.bench("Axios", async () => {
-//   const $ = axios.create({
-//     baseURL: "https://jsonplaceholder.typicode.com/",
-//     headers: { "hello": "world" },
-//   });
-
-//   const { data: post } = await $
-//     .post<Post>("posts", {
-//       title: "foo",
-//       body: "safasdd",
-//       userId: 2,
-//     });
-// });

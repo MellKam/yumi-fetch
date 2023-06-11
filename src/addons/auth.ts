@@ -36,7 +36,7 @@ export const auth = (
 ): Addon => {
   return (client) => {
     client.addMiddleware((next) => async (req) => {
-      let isTokerRefreshed = false;
+      let isTokenRefreshed = false;
 
       const setToken = async (useSavedToken: boolean) => {
         let token = useSavedToken && getSavedToken
@@ -44,7 +44,7 @@ export const auth = (
           : null;
 
         if (!token) {
-          isTokerRefreshed = true;
+          isTokenRefreshed = true;
           token = await Promise.resolve(refreshToken())
             .catch((err) => {
               throw new Error("Failed to refresh token", { cause: err });
@@ -61,7 +61,7 @@ export const auth = (
       } catch (err) {
         if (
           typeof err === "object" && err !== null && "status" in err &&
-          err.status === 401 && !isTokerRefreshed
+          err.status === 401 && !isTokenRefreshed
         ) {
           await setToken(false);
           return await next(req);
