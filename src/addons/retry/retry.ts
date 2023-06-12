@@ -66,14 +66,12 @@ export const retry =
     const _onRetry: OnRetry[] = [];
 
     client.addMiddleware((next) => async (url, opts) => {
-      const localOptions = opts.retry;
-
-      if (!localOptions && !globalOptions) return next(url, opts);
+      if (!opts.retry && !globalOptions) return next(url, opts);
 
       const { retryUntil, delayTimer, maxAttempts } = {
         ...defaultRetryOptions,
         ...globalOptions,
-        ...localOptions,
+        ...opts.retry,
       };
 
       let attemptsMade = 0;

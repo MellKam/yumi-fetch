@@ -58,17 +58,6 @@ export type FetchMiddleware<T_RequestOptions> = (
   next: FetchLike<T_RequestOptions>,
 ) => FetchLike<T_RequestOptions>;
 
-export type AfterResponseCleaner = () => void;
-export type BeforeRequestCallback<
-  T_RequestOptions = unknown,
-> = (
-  url: URL,
-  options:
-    & Omit<RequestOptions, "headers">
-    & { headers: Headers }
-    & Partial<T_RequestOptions>,
-) => void | AfterResponseCleaner;
-
 export interface ResponsePromise<
   T_RequestOptions,
   T_Resolvers,
@@ -140,9 +129,7 @@ const createResponsePromise = <T_RequestOptions, T_Resolvers>(
   } as ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 };
 
-export type ExtendOptions<
-  T_RequestOptions = unknown,
-> = {
+export type ExtendOptions<T_RequestOptions> = {
   baseURL?: string | URL;
   headers?: BetterHeaderInit;
   options?:
@@ -176,20 +163,20 @@ export type Addon<
   D_Resolvers = unknown,
 > = <
   C_Self extends D_Self,
-  C_RequestOptinos extends D_RequestOptions,
+  C_RequestOptions extends D_RequestOptions,
   C_Resolvers extends D_Resolvers,
 >(
   client:
     & Client<
       C_Self & M_Self,
-      C_RequestOptinos & M_RequestOptions,
+      C_RequestOptions & M_RequestOptions,
       C_Resolvers & M_Resolvers
     >
     & C_Self,
 ) =>
   & Client<
     C_Self & M_Self,
-    C_RequestOptinos & M_RequestOptions,
+    C_RequestOptions & M_RequestOptions,
     C_Resolvers & M_Resolvers
   >
   & C_Self
@@ -278,29 +265,22 @@ export interface Client<
   _baseURL: URL | undefined;
 
   _headers: Headers;
-  setHeaders(
-    init: BetterHeaderInit,
-  ): this;
+  setHeaders(init: BetterHeaderInit): this;
 
-  _options: Omit<RequestOptions, "headers"> & T_RequestOptions;
+  _options: Omit<RequestOptions, "headers"> & Partial<T_RequestOptions>;
   setOptions(
-    options: Omit<RequestOptions, "headers"> & T_RequestOptions,
+    options: Omit<RequestOptions, "headers"> & Partial<T_RequestOptions>,
   ): this;
 
   _errorCreator: HTTPErrorCreator;
-  serErrorCreator(
-    errorCreator: HTTPErrorCreator,
-  ): this;
+  serCustomError(errorCreator: HTTPErrorCreator): this;
 
   _middlewares: FetchMiddleware<T_RequestOptions>[];
   addMiddleware(
     middleware: FetchMiddleware<T_RequestOptions>,
   ): this;
-
-  _beforeRequest: BeforeRequestCallback<T_RequestOptions>[];
-  beforeRequest(
-    callback: BeforeRequestCallback<T_RequestOptions>,
-  ): this;
+  _linkMiddlewares(): FetchLike<T_RequestOptions>;
+  _mw: FetchLike<T_RequestOptions> | null;
 
   _resolvers: T_Resolvers;
   addResolvers<M_Resolvers>(
@@ -315,22 +295,22 @@ export interface Client<
     & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
     & T_Self;
 
+  _fetch: FetchLike<T_RequestOptions>;
+
   fetch(
     resource: URL | string,
     options?: RequestOptions & Partial<T_RequestOptions>,
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 
-  extend(
-    options: ExtendOptions,
-  ): this;
+  extend(options: ExtendOptions<T_RequestOptions>): this;
 
   addon<
-    M_Self = unknown,
-    M_RequestOptions = unknown,
-    M_Resolvers = unknown,
-    D_Self = unknown,
-    D_RequestOptions = unknown,
-    D_Resolvers = unknown,
+    M_Self,
+    M_RequestOptions,
+    M_Resolvers,
+    D_Self,
+    D_RequestOptions,
+    D_Resolvers,
   >(
     addon: Addon<
       M_Self,
@@ -358,13 +338,6 @@ export interface Client<
     : never;
 }
 
-const linkMiddlewares =
-  <T_RequestOptions>(middlewares: FetchMiddleware<T_RequestOptions>[]) =>
-  (fetch: FetchLike<T_RequestOptions>): FetchLike<T_RequestOptions> => {
-    if (!middlewares.length) return fetch;
-    return middlewares.reduceRight((next, mw) => mw(next), fetch);
-  };
-
 const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
   const result = new Headers(h1);
   if (h2) {
@@ -375,16 +348,22 @@ const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
   return result;
 };
 
-const mergeURLs = (
+function mergeURLs(baseURL: URL | undefined, extendURL: URL | string): URL;
+function mergeURLs(
+  baseURL: URL | undefined,
+  extendURL: URL | string | undefined,
+): URL | undefined;
+function mergeURLs(
   baseURL?: URL,
   extendURL?: URL | string,
-): URL | undefined => {
+): URL | undefined {
   if (baseURL && extendURL) {
     if (typeof extendURL === "object") return extendURL;
 
     const basePathname = baseURL.pathname.endsWith("/")
       ? baseURL.pathname
-      : baseURL + "/";
+      : baseURL.pathname + "/";
+
     const extendPathname = extendURL.startsWith("/")
       ? extendURL.slice(1)
       : extendURL;
@@ -392,10 +371,10 @@ const mergeURLs = (
     return new URL(basePathname + extendPathname, baseURL.origin);
   }
 
-  if (baseURL) return baseURL;
+  if (baseURL) return new URL(baseURL);
   if (extendURL) return new URL(extendURL);
   return;
-};
+}
 
 /**
  * The plain object that implements `Client` interface.
@@ -416,27 +395,30 @@ export const clientCore: Client = {
       .forEach((value, key) => this._headers.set(key, value));
     return this;
   },
-  _options: {} as Omit<RequestOptions, "headers">,
+  _options: {},
   setOptions(options) {
     this._options = { ...this._options, ...options };
     return this;
   },
   _errorCreator: HTTPError.create,
-  serErrorCreator(errorCreator) {
+  serCustomError(errorCreator) {
     this._errorCreator = errorCreator;
     return this;
   },
   _middlewares: [],
   addMiddleware(middleware) {
     this._middlewares.push(middleware);
+    this._mw = this._linkMiddlewares();
     return this;
   },
-  _beforeRequest: [] as BeforeRequestCallback[],
-  beforeRequest(callback) {
-    this._beforeRequest.push(callback);
-    return this;
+  _linkMiddlewares() {
+    return this._middlewares.reduceRight(
+      (next, mw) => mw(next),
+      this._fetch,
+    );
   },
-  _resolvers: null,
+  _mw: null,
+  _resolvers: {},
   addResolvers<T_Self, T_RequestOptions, T_Resolvers, M_Resolvers>(
     this: Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self,
     resolvers:
@@ -452,35 +434,25 @@ export const clientCore: Client = {
       & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
       & T_Self;
   },
+  async _fetch(url, options) {
+    const res = await globalThis.fetch(url, options);
+    if (res.ok) return res;
+    throw await this._errorCreator(res);
+  },
   fetch(resource, options = {}) {
-    const url = typeof resource === "string"
-      ? new URL(resource, this._baseURL)
-      : resource;
+    const url = mergeURLs(this._baseURL, resource);
     const opts = {
       ...this._options,
       ...options,
       headers: mergeHeaders(this._headers, options.headers),
     };
 
-    const cleaners: AfterResponseCleaner[] = [];
-    for (const callback of this._beforeRequest) {
-      const cleaner = callback(url, opts);
-      if (cleaner) cleaners.push(cleaner);
-    }
-
-    const _fetch: FetchLike<unknown> = async (url, opts) => {
-      try {
-        const res = await globalThis.fetch(url, opts);
-        if (res.ok) return res;
-        throw await this._errorCreator(res);
-      } finally {
-        for (const cleaner of cleaners) cleaner();
-      }
-    };
-
-    const wrappedFetch = linkMiddlewares(this._middlewares)(_fetch);
-
-    return createResponsePromise(wrappedFetch, url, opts, this._resolvers);
+    return createResponsePromise(
+      this._mw || this._fetch,
+      url,
+      opts,
+      this._resolvers,
+    );
   },
   addon(addon) {
     return addon(this as any);
