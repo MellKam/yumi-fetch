@@ -2,23 +2,23 @@ import * as fetchMock from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
 
 fetchMock.install();
 fetchMock.mock("POST@/posts", async (req) => {
-  // if (req.headers.get("hello") !== "world") {
-  //   throw new Error("Headers miss");
-  // }
-  // if (req.method !== "POST") {
-  //   throw new Error("Method miss");
-  // }
-  // if (req.headers.get("Content-type") !== "application/json") {
-  //   throw new Error(`Invalid content type ${req.headers.get("Content-type")}`);
-  // }
-  // const data = await req.json();
-  // if (data["title"] !== "foo") {
-  //   throw new Error("invalid data");
-  // }
+  if (req.headers.get("hello") !== "world") {
+    throw new Error("Headers miss");
+  }
+  if (req.method !== "POST") {
+    throw new Error("Method miss");
+  }
+  if (req.headers.get("Content-type") !== "application/json") {
+    throw new Error(`Invalid content type ${req.headers.get("Content-type")}`);
+  }
+  const data = await req.json();
+  if (data["title"] !== "foo") {
+    throw new Error("invalid data");
+  }
 
-  // if (new URL(req.url).pathname !== "/posts") {
-  //   throw new Error(`invalid pathname ${new URL(req.url).pathname}`);
-  // }
+  if (new URL(req.url).pathname !== "/posts") {
+    throw new Error(`invalid pathname ${new URL(req.url).pathname}`);
+  }
   return new Response(
     JSON.stringify({ body: "gdsfsd", id: 3, title: "gsdeffes", userId: 3 }),
   );
@@ -49,18 +49,13 @@ Deno.bench("fetch", { baseline: true }, async () => {
 
 // --------- Wretch ---------
 import Wretch from "npm:wretch";
-import QueryAddon from "npm:wretch/addons/queryString";
 
 Deno.bench("Wretch", async () => {
   const wretch = Wretch("https://jsonplaceholder.typicode.com/", {
     headers: { "hello": "world" },
-  }).addon(QueryAddon);
+  });
 
-  const post = await wretch.query({
-    abc: 8,
-    dbc: "gsdgasd",
-    gsd: ["agsd", "gsd", "gsd"],
-  })
+  const post = await wretch
     .post(
       {
         title: "foo",
@@ -75,14 +70,11 @@ Deno.bench("Wretch", async () => {
 // --------- Yumi ---------
 
 import { yumi } from "../src/mod.ts";
-import { responseEvents, retry, timeout } from "../src/addons/mod.ts";
 
 Deno.bench("Yumi", async () => {
   const client = yumi
-    .extend({
-      baseURL: "https://jsonplaceholder.typicode.com/",
-      headers: { "hello": "world" },
-    });
+    .withBaseURL("https://jsonplaceholder.typicode.com/")
+    .withHeaders({ "hello": "world" });
 
   const post = await client
     .post("/posts", {
@@ -90,11 +82,6 @@ Deno.bench("Yumi", async () => {
         title: "foo",
         body: "safasdd",
         userId: 2,
-      },
-      query: {
-        abc: 8,
-        dbc: "gsdgasd",
-        gsd: ["agsd", "gsd", "gsd"],
       },
     })
     .json<Post>();

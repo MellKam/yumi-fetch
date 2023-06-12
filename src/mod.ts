@@ -11,10 +11,10 @@ import {
  * Basically, provides you with boilerplate code, eliminating the need for you to manually include these add-ons yourself.
  */
 export const yumi = clientCore
-  .addon(fetchMethods)
-  .addon(bodyResolvers())
-  .addon(querySerializer)
-  .addon(jsonSerializer());
+  .withPlugin(fetchMethods)
+  .withPlugin(bodyResolvers())
+  .withPlugin(querySerializer)
+  .withPlugin(jsonSerializer());
 
 export type Yumi = typeof yumi;
 

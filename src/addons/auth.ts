@@ -1,4 +1,4 @@
-import { Addon } from "../core.ts";
+import { ClientPlugin } from "../core.ts";
 
 export type AuthOptions = {
   /**
@@ -33,9 +33,9 @@ export const auth = (
     refreshToken,
     tokenFormatter = (token) => "Bearer " + token,
   }: AuthOptions,
-): Addon => {
+): ClientPlugin => {
   return (client) => {
-    client.addMiddleware((next) => async (url, opts) => {
+    client.withMiddleware((next) => async (url, opts) => {
       let isTokenRefreshed = false;
 
       const setToken = async (useSavedToken: boolean) => {

@@ -1,7 +1,7 @@
 /**
  * Represents a set of the most frequently used HTTP headers.
  */
-export type CommonHeader =
+export type CommonHeaderName =
   | "Accept"
   | "Accept-Charset"
   | "Accept-Encoding"
@@ -29,42 +29,42 @@ export type CommonHeader =
   | "WWW-Authenticate";
 
 /**
- * Represents an improved, better-typed alternative to the `HeaderInit` type for providing headers in a request.
- *
- * This type offers better developer experience by providing more precise typing options for header initialization.
+ * Better-typed alternative to the `HeaderInit` type for initializing a new `Headers` object. It has a great autocomplete for the most common headers.
  */
 export type BetterHeaderInit =
   | Headers
-  | Record<CommonHeader, string>
+  | Record<CommonHeaderName, string>
   | Record<string, string>
-  | [CommonHeader, string][]
+  | [CommonHeaderName, string][]
   | [string, string][];
 
-export type RequestOptions =
+export type BetterRequestInit<T_RequestOptions> =
   & RequestInit
-  & {
-    headers?: BetterHeaderInit;
-  };
+  & { headers?: BetterHeaderInit }
+  & Partial<T_RequestOptions>;
 
-export type MergedRequestOptions<T_RequestOptions> = RequestOptions & {
-  headers: Headers;
-} & Partial<T_RequestOptions>;
+export type RequestOptions<T_RequestOptions> =
+  & RequestInit
+  & { headers: Headers }
+  & Partial<T_RequestOptions>;
 
 export type FetchLike<T_RequestOptions> = (
   url: URL,
-  options: MergedRequestOptions<T_RequestOptions>,
+  options: RequestOptions<T_RequestOptions>,
 ) => Promise<Response>;
+
 export type FetchMiddleware<T_RequestOptions> = (
   next: FetchLike<T_RequestOptions>,
 ) => FetchLike<T_RequestOptions>;
 
 export interface ResponsePromise<
-  T_RequestOptions,
-  T_Resolvers,
+  T_RequestOptions = unknown,
+  T_Resolvers = unknown,
 > extends Promise<Response> {
   _url: URL;
-  _opts: MergedRequestOptions<T_RequestOptions>;
+  _opts: RequestOptions<T_RequestOptions>;
   _fetch: FetchLike<T_RequestOptions>;
+
   _then(
     onfulfilled?:
       | ((value: Response) => Response | PromiseLike<Response>)
@@ -86,10 +86,13 @@ export interface ResponsePromise<
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
-const createResponsePromise = <T_RequestOptions, T_Resolvers>(
+const createResponsePromise = <
+  T_RequestOptions = unknown,
+  T_Resolvers = unknown,
+>(
   fetch: FetchLike<T_RequestOptions>,
   url: URL,
-  opts: MergedRequestOptions<T_RequestOptions>,
+  opts: RequestOptions<T_RequestOptions>,
   resolvers: T_Resolvers,
 ) => {
   return {
@@ -129,32 +132,24 @@ const createResponsePromise = <T_RequestOptions, T_Resolvers>(
   } as ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 };
 
-export type ExtendOptions<T_RequestOptions> = {
-  baseURL?: string | URL;
-  headers?: BetterHeaderInit;
-  options?:
-    & Omit<RequestOptions, "headers">
-    & Partial<T_RequestOptions>;
-};
-
 /**
- * Represents a type of addon (in other words, plugin) that extends the client type with custom generics.
+ * Represents a type of plugin that extends the client type with custom generics.
  *
- * ### Addon modifications
- * An addon modification is a set of generics that the addon uses to modify the client's generics.
+ * ### Plugin modifications
+ * A plugin modification is a set of generics that the plugin uses to modify the client's generics.
  *
- * @template M_Self (Self modifications) - The object of properties, that addon will add to the client `Self` generic.
- * @template M_RequestOptions (Request options modifications) - Options that addon will add to the client `RequestOptions` generic.
- * @template M_Resolvers (Resolvers modifications) - Resolvers that addon will add to the client `Resolvers` generic.
+ * @template M_Self (Self modifications) - The object of properties, that plugin will add to the client `Self` generic.
+ * @template M_RequestOptions (Request options modifications) - Options that plugin will add to the client `RequestOptions` generic.
+ * @template M_Resolvers (Resolvers modifications) - Resolvers that plugin will add to the client `Resolvers` generic.
  *
- * ### Addon dependencies
- * An addon dependency is a set of generics that the addon requires from the client to be included.
+ * ### Plugin dependencies
+ * An plugin dependency is a set of generics that the plugin requires from the client to be included.
  *
  * @template D_Self (Self dependencies) - Dependencies on client `Self` generic.
  * @template D_RequestOptions (Request options dependencies) - Dependencies on client `RequestOptions` generic.
  * @template D_Resolvers (Resolvers dependecies) - Dependencies on client `Resolvers` generic.
  */
-export type Addon<
+export type ClientPlugin<
   M_Self = unknown,
   M_RequestOptions = unknown,
   M_Resolvers = unknown,
@@ -251,7 +246,7 @@ type AllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
   : never;
 
 /**
- * Represents an object that can perform HTTP requests.
+ * Extensible HTTP client entity
  *
  * @template T_Self - Allows you to extend the client with custom properties
  * @template T_RequestOptions - Allows you to extend request options with custom properties
@@ -263,27 +258,21 @@ export interface Client<
   T_Resolvers = unknown,
 > {
   _baseURL: URL | undefined;
+  withBaseURL(baseURL: string | URL): this;
 
   _headers: Headers;
-  setHeaders(init: BetterHeaderInit): this;
+  withHeaders(init: BetterHeaderInit): this;
 
-  _options: Omit<RequestOptions, "headers"> & Partial<T_RequestOptions>;
-  setOptions(
-    options: Omit<RequestOptions, "headers"> & Partial<T_RequestOptions>,
+  _options: Omit<BetterRequestInit<T_RequestOptions>, "headers">;
+  withOptions(
+    options: Omit<BetterRequestInit<T_RequestOptions>, "headers">,
   ): this;
 
   _errorCreator: HTTPErrorCreator;
-  serCustomError(errorCreator: HTTPErrorCreator): this;
-
-  _middlewares: FetchMiddleware<T_RequestOptions>[];
-  addMiddleware(
-    middleware: FetchMiddleware<T_RequestOptions>,
-  ): this;
-  _linkMiddlewares(): FetchLike<T_RequestOptions>;
-  _mw: FetchLike<T_RequestOptions> | null;
+  withCustomError(errorCreator: HTTPErrorCreator): this;
 
   _resolvers: T_Resolvers;
-  addResolvers<M_Resolvers>(
+  withResolvers<M_Resolvers>(
     resolvers:
       & M_Resolvers
       & ThisType<
@@ -295,16 +284,13 @@ export interface Client<
     & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
     & T_Self;
 
-  _fetch: FetchLike<T_RequestOptions>;
+  withProperties<M_Self>(
+    self:
+      & M_Self
+      & ThisType<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>,
+  ): Client<T_Self & M_Self, T_RequestOptions, T_Resolvers> & T_Self & M_Self;
 
-  fetch(
-    resource: URL | string,
-    options?: RequestOptions & Partial<T_RequestOptions>,
-  ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
-
-  extend(options: ExtendOptions<T_RequestOptions>): this;
-
-  addon<
+  withPlugin<
     M_Self,
     M_RequestOptions,
     M_Resolvers,
@@ -312,7 +298,7 @@ export interface Client<
     D_RequestOptions,
     D_Resolvers,
   >(
-    addon: Addon<
+    plugin: ClientPlugin<
       M_Self,
       M_RequestOptions,
       M_Resolvers,
@@ -336,9 +322,26 @@ export interface Client<
       & T_Self
       & M_Self
     : never;
+
+  _middlewares: FetchMiddleware<T_RequestOptions>[];
+  withMiddlewares(middlewares: FetchMiddleware<T_RequestOptions>[]): this;
+  withMiddleware(middleware: FetchMiddleware<T_RequestOptions>): this;
+
+  _linkMiddlewares(): FetchLike<T_RequestOptions>;
+  _linkedFetch: FetchLike<T_RequestOptions> | null;
+
+  _fetch: FetchLike<T_RequestOptions>;
+  fetch(
+    resource: URL | string,
+    options?: BetterRequestInit<T_RequestOptions>,
+  ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
-const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
+/**
+ * @internal
+ * Always returns a new `Headers` object. Does not mutate input arguments.
+ */
+const mergeHeaders = (h1: BetterHeaderInit, h2?: BetterHeaderInit) => {
   const result = new Headers(h1);
   if (h2) {
     new Headers(h2)
@@ -348,32 +351,36 @@ const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
   return result;
 };
 
-function mergeURLs(baseURL: URL | undefined, extendURL: URL | string): URL;
+/**
+ * @internal
+ * Always returns a new `URL` object. Does not mutate input arguments.
+ *
+ * @param url A `URL` object (without a hash and query parameters) or a string pathname. If the `URL` object is passed, the base argument will be ignored.
+ * @param base Optional `URL` object or string url (without a hash and query parameters)
+ *
+ * @example
+ * ```ts
+ * new URL("/user", "http://example.com/api/")
+ * // URL{ "http://example.com/user" } ☹️
+ * mergeURLs("/user", "http://example.com/api/")
+ * // URL{ "http://example.com/api/user" } 😃
+ * ```
+ */
 function mergeURLs(
-  baseURL: URL | undefined,
-  extendURL: URL | string | undefined,
-): URL | undefined;
-function mergeURLs(
-  baseURL?: URL,
-  extendURL?: URL | string,
-): URL | undefined {
-  if (baseURL && extendURL) {
-    if (typeof extendURL === "object") return extendURL;
+  url: URL | string,
+  base?: URL | string,
+): URL {
+  if (base && url) {
+    if (typeof url === "object") return new URL(url);
 
-    const basePathname = baseURL.pathname.endsWith("/")
-      ? baseURL.pathname
-      : baseURL.pathname + "/";
+    const result = new URL(base);
+    result.pathname += (result.pathname.endsWith("/") ? "" : "/") +
+      (url.startsWith("/") ? url.slice(1) : url);
 
-    const extendPathname = extendURL.startsWith("/")
-      ? extendURL.slice(1)
-      : extendURL;
-
-    return new URL(basePathname + extendPathname, baseURL.origin);
+    return result;
   }
 
-  if (baseURL) return new URL(baseURL);
-  if (extendURL) return new URL(extendURL);
-  return;
+  return base ? new URL(base) : new URL(url);
 }
 
 /**
@@ -389,37 +396,32 @@ function mergeURLs(
  */
 export const clientCore: Client = {
   _baseURL: undefined,
+  withBaseURL(baseURL) {
+    return { ...this, _baseURL: new URL(baseURL) };
+  },
   _headers: new Headers(),
-  setHeaders(init) {
-    new Headers(init)
-      .forEach((value, key) => this._headers.set(key, value));
-    return this;
+  withHeaders(init) {
+    return {
+      ...this,
+      _headers: mergeHeaders(this._headers, init),
+    };
   },
   _options: {},
-  setOptions(options) {
-    this._options = { ...this._options, ...options };
-    return this;
+  withOptions(options) {
+    return {
+      ...this,
+      _options: { ...this._options, ...options },
+    };
   },
   _errorCreator: HTTPError.create,
-  serCustomError(errorCreator) {
-    this._errorCreator = errorCreator;
-    return this;
+  withCustomError(errorCreator) {
+    return {
+      ...this,
+      _errorCreator: errorCreator,
+    };
   },
-  _middlewares: [],
-  addMiddleware(middleware) {
-    this._middlewares.push(middleware);
-    this._mw = this._linkMiddlewares();
-    return this;
-  },
-  _linkMiddlewares() {
-    return this._middlewares.reduceRight(
-      (next, mw) => mw(next),
-      this._fetch,
-    );
-  },
-  _mw: null,
   _resolvers: {},
-  addResolvers<T_Self, T_RequestOptions, T_Resolvers, M_Resolvers>(
+  withResolvers<T_Self, T_RequestOptions, T_Resolvers, M_Resolvers>(
     this: Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self,
     resolvers:
       & M_Resolvers
@@ -429,18 +431,44 @@ export const clientCore: Client = {
         & M_Resolvers
       >,
   ) {
-    this._resolvers = { ...this._resolvers, ...resolvers };
-    return this as
-      & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
-      & T_Self;
+    return {
+      ...this,
+      _resolvers: { ...this._resolvers, ...resolvers },
+    };
   },
+  withProperties(self) {
+    return { ...this as any, ...self };
+  },
+  withPlugin(plugin) {
+    return plugin(this as any);
+  },
+  _middlewares: [],
+  withMiddlewares(middlewares) {
+    const client = {
+      ...this,
+      _middlewares: [...this._middlewares, ...middlewares],
+    };
+
+    client._linkedFetch = client._linkMiddlewares();
+    return client;
+  },
+  withMiddleware(middleware) {
+    return this.withMiddlewares([middleware]);
+  },
+  _linkMiddlewares() {
+    return this._middlewares.reduceRight(
+      (next, mw) => mw(next),
+      this._fetch,
+    );
+  },
+  _linkedFetch: null,
   async _fetch(url, options) {
     const res = await globalThis.fetch(url, options);
     if (res.ok) return res;
     throw await this._errorCreator(res);
   },
   fetch(resource, options = {}) {
-    const url = mergeURLs(this._baseURL, resource);
+    const url = mergeURLs(resource, this._baseURL);
     const opts = {
       ...this._options,
       ...options,
@@ -448,21 +476,10 @@ export const clientCore: Client = {
     };
 
     return createResponsePromise(
-      this._mw || this._fetch,
+      this._linkedFetch || this._fetch,
       url,
       opts,
       this._resolvers,
     );
-  },
-  addon(addon) {
-    return addon(this as any);
-  },
-  extend(options) {
-    return {
-      ...this,
-      _baseURL: mergeURLs(this._baseURL, options.baseURL),
-      _headers: mergeHeaders(this._headers, options.headers),
-      _options: { ...this._options, ...options.options },
-    };
   },
 };

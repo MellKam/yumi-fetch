@@ -1,4 +1,4 @@
-import { Addon, ResponsePromise } from "../core.ts";
+import { ClientPlugin, ResponsePromise } from "../core.ts";
 
 export type ProgressCallback = (loaded: number, total: number | null) => void;
 
@@ -9,8 +9,8 @@ interface Progress {
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
-export const progress: Addon<unknown, unknown, Progress> = (client) => {
-  return client.addResolvers({
+export const progress: ClientPlugin<unknown, unknown, Progress> = (client) => {
+  return client.withResolvers({
     progress(callback: ProgressCallback) {
       return this._then((res) => {
         const contentLength = res.headers.get("Content-Length");

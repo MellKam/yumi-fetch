@@ -1,13 +1,13 @@
-import { Addon, Client, MergedRequestOptions } from "../../core.ts";
+import { Client, ClientPlugin, RequestOptions } from "../../core.ts";
 
 export type RetryUntil = (
   res?: Response,
   error?: unknown,
 ) => boolean | Promise<boolean>;
 
-type RetryData<T_RequestOptions> = {
+export type RetryData<T_RequestOptions> = {
   readonly url: URL;
-  readonly options: MergedRequestOptions<T_RequestOptions>;
+  readonly options: RequestOptions<T_RequestOptions>;
   readonly res?: Response;
   readonly error?: unknown;
   readonly attemptsMade: number;
@@ -50,7 +50,7 @@ export class MaxRetryAttemptsError extends Error {
   }
 }
 
-interface RetryEvent {
+export interface RetryEvent {
   _onRetry: OnRetry[];
   onRetry<T_Self extends RetryEvent>(
     this: Client<T_Self> & T_Self,
@@ -58,71 +58,74 @@ interface RetryEvent {
   ): this;
 }
 
-export const retry =
-  (globalOptions?: Partial<RetryOptoins>): Addon<RetryEvent, {
-    retry: Partial<RetryOptoins>;
-  }> =>
-  (client) => {
+export interface RetryOptions {
+  retry: Partial<RetryOptoins>;
+}
+
+export const retry = (
+  globalOptions?: Partial<RetryOptoins>,
+): ClientPlugin<RetryEvent, RetryOptions> => {
+  return (client) => {
     const _onRetry: OnRetry[] = [];
 
-    client.addMiddleware((next) => async (url, opts) => {
-      if (!opts.retry && !globalOptions) return next(url, opts);
+    return client
+      .withProperties<RetryEvent>({
+        _onRetry,
+        onRetry(callback) {
+          this._onRetry.push(callback);
+          return this;
+        },
+      })
+      .withMiddleware((next) => async (url, opts) => {
+        if (!opts.retry && !globalOptions) return next(url, opts);
 
-      const { retryUntil, delayTimer, maxAttempts } = {
-        ...defaultRetryOptions,
-        ...globalOptions,
-        ...opts.retry,
-      };
-
-      let attemptsMade = 0;
-
-      const checkStatus = async (
-        res?: Response,
-        err?: unknown,
-      ): Promise<Response> => {
-        const done = await Promise.resolve(retryUntil(res, err));
-
-        if (done && res) return res;
-        if (done && err) throw err;
-
-        if (attemptsMade >= maxAttempts) {
-          throw new MaxRetryAttemptsError(maxAttempts, res, { cause: err });
-        }
-
-        if (delayTimer) {
-          await new Promise((res) => {
-            setTimeout(res, delayTimer);
-          });
-        }
-
-        const retryData = {
-          attemptsMade,
-          url,
-          options: opts,
-          error: err,
-          res,
+        const { retryUntil, delayTimer, maxAttempts } = {
+          ...defaultRetryOptions,
+          ...globalOptions,
+          ...opts.retry,
         };
 
-        for (const callback of _onRetry) {
-          await callback(retryData);
-        }
+        let attemptsMade = 0;
 
-        attemptsMade++;
+        const checkStatus = async (
+          res?: Response,
+          err?: unknown,
+        ): Promise<Response> => {
+          const done = await Promise.resolve(retryUntil(res, err));
+
+          if (done && res) return res;
+          if (done && err) throw err;
+
+          if (attemptsMade >= maxAttempts) {
+            throw new MaxRetryAttemptsError(maxAttempts, res, { cause: err });
+          }
+
+          if (delayTimer) {
+            await new Promise((res) => {
+              setTimeout(res, delayTimer);
+            });
+          }
+
+          const retryData = {
+            attemptsMade,
+            url,
+            options: opts,
+            error: err,
+            res,
+          };
+
+          for (const callback of _onRetry) {
+            await callback(retryData);
+          }
+
+          attemptsMade++;
+
+          return await next(url, opts)
+            .then(checkStatus, (error) => checkStatus(undefined, error));
+        };
 
         return await next(url, opts)
           .then(checkStatus, (error) => checkStatus(undefined, error));
-      };
-
-      return await next(url, opts)
-        .then(checkStatus, (error) => checkStatus(undefined, error));
-    });
-
-    return {
-      ...client,
-      _onRetry,
-      onRetry(callback) {
-        this._onRetry.push(callback);
-        return this;
-      },
-    };
+      });
   };
+};

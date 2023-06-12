@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/yumi-fetch">
-    <img alt="npm" src="https://img.shields.io/npm/v/yumi-fetch?color=FF3797&label=NPM">
+    <img alt="npm" src="https://img.shields.io/npm/v/yumi-fetch?color=FF3797&label=npm">
   </a>
   <a href="https://deno.land/x/yumi">
     <img alt="deno.land" src="https://img.shields.io/github/v/tag/MellKam/yumi-fetch?color=FF3797&label=deno.land%2Fx&logo=deno">
@@ -35,7 +35,7 @@ npm i yumi-fetch
 ## [deno.land](https://deno.land/x/yumi)
 
 ```ts
-import yumi from "https://deno.land/x/yumi/mod.ts";
+import { yumi } from "https://deno.land/x/yumi/mod.ts";
 ```
 
 # Getting started
@@ -43,9 +43,7 @@ import yumi from "https://deno.land/x/yumi/mod.ts";
 ```ts
 import { yumi } from "yumi-fetch";
 
-const client = yumi.extend({
-  baseURL: "https://dummyjson.com/",
-});
+const client = yumi.withBaseURL("https://dummyjson.com/");
 
 type Todo = {
   id: number;

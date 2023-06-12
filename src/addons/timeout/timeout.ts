@@ -1,7 +1,7 @@
 import {
-  Addon,
   Client,
-  MergedRequestOptions,
+  ClientPlugin,
+  RequestOptions,
   ResponsePromise,
 } from "../../core.ts";
 
@@ -18,7 +18,7 @@ class TimeoutError extends Error {
 
 export type OnTimeout<T_RequestOptions = unknown> = (
   url: URL,
-  opts: MergedRequestOptions<T_RequestOptions>,
+  opts: RequestOptions<T_RequestOptions>,
   err: TimeoutError,
 ) => void;
 
@@ -35,7 +35,7 @@ interface TimeoutResolver {
     this: ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers,
     callback: (
       url: URL,
-      opts: MergedRequestOptions<T_RequestOptions>,
+      opts: RequestOptions<T_RequestOptions>,
       err: TimeoutError,
     ) => void,
   ): this;
@@ -43,58 +43,56 @@ interface TimeoutResolver {
 
 export const timeout = (
   globalTimeout?: number,
-): Addon<AbortEvents, { timeout: number }, TimeoutResolver> => {
+): ClientPlugin<AbortEvents, { timeout: number }, TimeoutResolver> => {
   return (client) => {
     const _onTimeout: OnTimeout[] = [];
 
-    client.addResolvers<TimeoutResolver>({
-      onTimeout(callback) {
-        return this._catch((err) => {
-          if (err.name === "TimeoutError") {
-            callback(this._url, this._opts, err);
-          }
-          throw err;
-        });
-      },
-    });
-
-    client.addMiddleware((next) => async (url, opts) => {
-      const timeout = opts.timeout || globalTimeout;
-      if (!timeout) return next(url, opts);
-
-      const controller = new AbortController();
-      opts.signal = controller.signal;
-      const timeoutID = setTimeout(
-        () => {
-          controller.abort(new TimeoutError(new Request(url, opts), timeout));
+    return client
+      .withProperties<AbortEvents>({
+        _onTimeout,
+        onTimeout(callback) {
+          this._onTimeout.push(callback);
+          return this;
         },
-        timeout,
-      );
+      })
+      .withResolvers<TimeoutResolver>({
+        onTimeout(callback) {
+          return this._catch((err) => {
+            if (err.name === "TimeoutError") {
+              callback(this._url, this._opts, err);
+            }
+            throw err;
+          });
+        },
+      })
+      .withMiddleware((next) => async (url, opts) => {
+        const timeout = opts.timeout || globalTimeout;
+        if (!timeout) return next(url, opts);
 
-      try {
-        return await next(url, opts);
-      } catch (error) {
-        if (
-          typeof error === "object" && error !== null &&
-          (error as TimeoutError).name === "TimeoutError"
-        ) {
-          for (const callback of _onTimeout) {
-            callback(url, opts, error as TimeoutError);
+        const controller = new AbortController();
+        opts.signal = controller.signal;
+        const timeoutID = setTimeout(
+          () => {
+            controller.abort(new TimeoutError(new Request(url, opts), timeout));
+          },
+          timeout,
+        );
+
+        try {
+          return await next(url, opts);
+        } catch (error) {
+          if (
+            typeof error === "object" && error !== null &&
+            (error as TimeoutError).name === "TimeoutError"
+          ) {
+            for (const callback of _onTimeout) {
+              callback(url, opts, error as TimeoutError);
+            }
           }
+          throw error;
+        } finally {
+          clearTimeout(timeoutID);
         }
-        throw error;
-      } finally {
-        clearTimeout(timeoutID);
-      }
-    });
-
-    return {
-      ...client,
-      _onTimeout,
-      onTimeout(callback) {
-        this._onTimeout.push(callback);
-        return this;
-      },
-    };
+      });
   };
 };

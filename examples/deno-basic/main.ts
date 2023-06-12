@@ -14,9 +14,7 @@ type Todos = {
   limit: number;
 };
 
-const client = yumi.extend({
-  baseURL: "https://dummyjson.com/",
-});
+const client = yumi.withBaseURL("https://dummyjson.com/");
 
 const { todos } = await client
   .get("/todos", { query: { limit: 2 } })

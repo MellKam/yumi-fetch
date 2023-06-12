@@ -1,4 +1,4 @@
-import { Addon } from "../core.ts";
+import { ClientPlugin } from "../core.ts";
 
 export type JSONValue =
   | null
@@ -13,8 +13,9 @@ export interface JSONObject {
 }
 
 export const jsonSerializer =
-  <JSONType = unknown>(): Addon<unknown, { json: JSONType }> => (client) =>
-    client.addMiddleware((next) => (url, opts) => {
+  <JSONType = unknown>(): ClientPlugin<unknown, { json: JSONType }> =>
+  (client) =>
+    client.withMiddleware((next) => (url, opts) => {
       if (!opts.body && opts.json) {
         opts.headers.set("Content-Type", "application/json");
         opts.body = JSON.stringify(opts.json);

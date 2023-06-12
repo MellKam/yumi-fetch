@@ -1,4 +1,4 @@
-import { Addon } from "../core.ts";
+import { ClientPlugin } from "../core.ts";
 
 export interface SearchParams {
   [k: string]:
@@ -9,10 +9,10 @@ export interface SearchParams {
     | undefined;
 }
 
-export const querySerializer: Addon<unknown, { query: SearchParams }> = (
+export const querySerializer: ClientPlugin<unknown, { query: SearchParams }> = (
   client,
-) =>
-  client.addMiddleware((next) => (url, opts) => {
+) => {
+  return client.withMiddleware((next) => (url, opts) => {
     if (opts.query) {
       for (const key in opts.query) {
         const value = opts.query[key];
@@ -21,3 +21,4 @@ export const querySerializer: Addon<unknown, { query: SearchParams }> = (
     }
     return next(url, opts);
   });
+};

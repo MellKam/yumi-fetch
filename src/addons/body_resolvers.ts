@@ -1,4 +1,4 @@
-import { Addon, ResponsePromise } from "../core.ts";
+import { ClientPlugin, ResponsePromise } from "../core.ts";
 
 const BODY_METHODS = {
   json: "application/json",
@@ -18,7 +18,7 @@ export type BodyResolvers<JSONType = unknown> = {
   formData(): Promise<FormData>;
 };
 
-export const bodyResolvers = <JSONType = unknown>(): Addon<
+export const bodyResolvers = <JSONType = unknown>(): ClientPlugin<
   unknown,
   unknown,
   BodyResolvers<JSONType>
@@ -35,5 +35,5 @@ export const bodyResolvers = <JSONType = unknown>(): Addon<
     };
   }
 
-  return client.addResolvers(bodyResolvers);
+  return client.withResolvers(bodyResolvers);
 };
