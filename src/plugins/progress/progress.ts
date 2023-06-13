@@ -1,4 +1,4 @@
-import { ClientPlugin, ResponsePromise } from "../core.ts";
+import { ClientPlugin, ResponsePromise } from "../../core.ts";
 
 export type ProgressCallback = (loaded: number, total: number | null) => void;
 

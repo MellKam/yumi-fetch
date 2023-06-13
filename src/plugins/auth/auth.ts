@@ -1,4 +1,4 @@
-import { ClientPlugin } from "../core.ts";
+import { ClientPlugin } from "../../core.ts";
 
 export type AuthOptions = {
   /**
@@ -35,7 +35,7 @@ export const auth = (
   }: AuthOptions,
 ): ClientPlugin => {
   return (client) => {
-    client.withMiddleware((next) => async (url, opts) => {
+    return client.withMiddleware((next) => async (url, opts) => {
       let isTokenRefreshed = false;
 
       const setToken = async (useSavedToken: boolean) => {
@@ -69,7 +69,5 @@ export const auth = (
         throw err;
       }
     });
-
-    return client;
   };
 };

@@ -5,7 +5,7 @@ export default defineConfig({
     lib: {
       entry: {
         index: "./src/mod.ts",
-        addons: "./src/addons/mod.ts",
+        plugins: "./src/plugins/mod.ts",
       },
       formats: ["cjs", "es"],
     },

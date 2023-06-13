@@ -21,7 +21,7 @@ type Todos = {
   limit: number;
 };
 
-const client = yumi.addon(retry({
+const client = yumi.withPlugin(retry({
   maxAttempts: 8,
   delayTimer: 100,
 }));

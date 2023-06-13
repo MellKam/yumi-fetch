@@ -263,10 +263,8 @@ export interface Client<
   _headers: Headers;
   withHeaders(init: BetterHeaderInit): this;
 
-  _options: Omit<BetterRequestInit<T_RequestOptions>, "headers">;
-  withOptions(
-    options: Omit<BetterRequestInit<T_RequestOptions>, "headers">,
-  ): this;
+  _options: Omit<RequestInit, "headers">;
+  withOptions(options: Omit<RequestInit, "headers">): this;
 
   _errorCreator: HTTPErrorCreator;
   withCustomError(errorCreator: HTTPErrorCreator): this;

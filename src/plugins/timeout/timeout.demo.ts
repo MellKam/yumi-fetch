@@ -22,7 +22,7 @@ type Todos = {
   limit: number;
 };
 
-const client = yumi.addon(timeout(100));
+const client = yumi.withPlugin(timeout(100));
 
 client
   .post("https://dummyjson.com/todos", {

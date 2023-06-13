@@ -3,7 +3,7 @@ import {
   Client,
   ClientPlugin,
   ResponsePromise,
-} from "../core.ts";
+} from "../../core.ts";
 
 export type HTTPMethod =
   | "GET"
@@ -20,7 +20,7 @@ const HTTP_METHODS: readonly HTTPMethod[] = [
   "DELETE",
 ] as const;
 
-type FetchMethod = <
+type HTTPFetchMethod = <
   T_RequestOptions,
   T_Resolvers,
 >(
@@ -29,15 +29,32 @@ type FetchMethod = <
   options?: Omit<BetterRequestInit<T_RequestOptions>, "method">,
 ) => ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 
-export type FetchMethods = {
-  [_ in Lowercase<HTTPMethod>]: FetchMethod;
+export type HTTPMethods = {
+  [_ in Lowercase<HTTPMethod>]: HTTPFetchMethod;
 };
 
-export const fetchMethods: ClientPlugin<FetchMethods> = (client) => {
-  const methods = {} as FetchMethods;
+/**
+ * **Default Yumi Plugin**
+ *
+ * Clinet plugin providing shorthand for fetch calls with certain http methods.
+ *
+ * @example
+ * ```ts
+ * import { clientCore, httpMethods } from "yumi-fetch";
+ *
+ * const client = clientCore.withPlugin(httpMethods);
+ *
+ * // without this plugin
+ * client.fetch("/todos", { method: "POST" })
+ * // with this plugin
+ * client.post("/todos")
+ * ```
+ */
+export const httpMethods: ClientPlugin<HTTPMethods> = (client) => {
+  const methods = {} as HTTPMethods;
 
   for (const method of HTTP_METHODS) {
-    methods[method.toLowerCase() as keyof FetchMethods] = function <
+    methods[method.toLowerCase() as Lowercase<HTTPMethod>] = function <
       T_RequestOptions,
       T_Resolvers,
     >(
@@ -50,5 +67,5 @@ export const fetchMethods: ClientPlugin<FetchMethods> = (client) => {
     };
   }
 
-  return { ...client, ...methods };
+  return client.withProperties(methods);
 };
