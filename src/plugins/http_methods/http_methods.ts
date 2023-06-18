@@ -19,7 +19,7 @@ export type HTTPMethods<HTTPMethod extends string> = {
  * ```ts
  * import { clientCore, httpMethods } from "yumi-fetch";
  *
- * const client = clientCore.withPlugin(httpMethods);
+ * const client = clientCore.withProperties(httpMethods());
  *
  * // without this plugin
  * client.fetch("/todos", { method: "POST" })
@@ -28,7 +28,7 @@ export type HTTPMethods<HTTPMethod extends string> = {
  * ```
  */
 
-type DefaultMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export type DefaultMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 export const httpMethods = <const T extends string = DefaultMethods>(
   methodNames: readonly T[] = [
     "GET" as T,

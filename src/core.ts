@@ -19,14 +19,14 @@ export type FetchLike<T_RequestOptions> = (
   options: RequestOptions<T_RequestOptions>
 ) => Promise<Response>;
 
-export type FetchMiddleware<T_RequestOptions> = (
+export type FetchMiddleware<T_RequestOptions = unknown> = (
   next: FetchLike<T_RequestOptions>
 ) => FetchLike<T_RequestOptions>;
 
-export interface ResponsePromise<
+export type ResponsePromise<
   T_RequestOptions = unknown,
   T_Resolvers = unknown
-> extends Promise<Response> {
+> = Promise<Response> & {
   _url: URL;
   _opts: RequestOptions<T_RequestOptions>;
   _fetch: FetchLike<T_RequestOptions>;
@@ -50,7 +50,7 @@ export interface ResponsePromise<
   _finally(
     onfinally?: (() => void) | undefined | null
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
-}
+};
 
 const createResponsePromise = <
   T_RequestOptions = unknown,
@@ -285,11 +285,64 @@ export interface Client<
     : never;
 
   _middlewares: FetchMiddleware<T_RequestOptions>[];
-  withMiddlewares(middlewares: FetchMiddleware<T_RequestOptions>[]): this;
-  withMiddleware(middleware: FetchMiddleware<T_RequestOptions>): this;
+  withMiddlewares<M_RequestOptions>(
+    middlewares: FetchMiddleware<T_RequestOptions & M_RequestOptions>[]
+  ): Client<T_Self, T_RequestOptions & M_RequestOptions, T_Resolvers> & T_Self;
+  withMiddleware<M_RequestOptions>(
+    middleware: FetchMiddleware<T_RequestOptions & M_RequestOptions>
+  ): Client<T_Self, T_RequestOptions & M_RequestOptions, T_Resolvers> & T_Self;
 
-  _linkMiddlewares(): FetchLike<T_RequestOptions>;
+  /**
+   * @internal Cache for the fetch linked with middlewares
+   */
   _linkedFetch: FetchLike<T_RequestOptions> | null;
+  /**
+   * @internal
+   * Connects `this._fetch` with `this._middlewares` and returns a `FetchLike` function.
+   * Default link order __FIFO__ (first in first out)
+   *
+   * ```
+   * this._middlewares: [a, b, c]
+   *
+   * { // begin a
+   *   { // begin b
+   *     { // begin c
+   *       this._fetch()
+   *     } // end c
+   *   } // end b
+   * } // end a
+   * ```
+   *
+   * You can overwrite it to use __LIFO__ (last in first out) if you want. You just need to chenge `reduceRight()` method to `reduce()`.
+   *
+   * ```ts
+   * client._linkMiddlewares = function() {
+   *   return this._middlewares.reduce(
+   *     (next, mw) => mw(next),
+   *     this._fetch
+   *   );
+   * }
+   * ```
+   *
+   * ```
+   * _middlewares: [a, b, c]
+   *
+   * { // begin c
+   *   { // begin b
+   *     { // begin a
+   *       this._fetch()
+   *     } // end a
+   *   } // end b
+   * } // end c
+   * ```
+   */
+  _linkMiddlewares(): FetchLike<T_RequestOptions>;
+  /**
+   * @internal
+   * Linked fetch stale status. By default, it is set to "false". However, if middleware has been added, it changes to "true".
+   * When a request is made, this status is checked, and if it is "true", a new linkedFetch will be created.
+   */
+  _linkedFetchStale: boolean;
 
   _fetch: FetchLike<T_RequestOptions>;
   fetch(
@@ -401,38 +454,42 @@ export const clientCore: Client = {
   },
   _middlewares: [],
   withMiddlewares(middlewares) {
-    const client = {
+    return {
       ...this,
       _middlewares: [...this._middlewares, ...middlewares],
+      _linkedFetchStale: true,
     };
-
-    client._linkedFetch = client._linkMiddlewares();
-    return client;
   },
   withMiddleware(middleware) {
     return this.withMiddlewares([middleware]);
   },
+  _linkedFetch: null,
   _linkMiddlewares() {
     return this._middlewares.reduceRight((next, mw) => mw(next), this._fetch);
   },
-  _linkedFetch: null,
+  _linkedFetchStale: false,
   async _fetch(url, options) {
     const res = await globalThis.fetch(url, options);
     if (res.ok) return res;
     throw await this._errorCreator(res);
   },
   fetch(resource, options = {}) {
-    const url = mergeURLs(resource, this._baseURL);
-    const opts = {
+    const mergedURL = mergeURLs(resource, this._baseURL);
+    const mergedOptions = {
       ...this._options,
       ...options,
       headers: mergeHeaders(this._headers, options.headers),
     };
 
+    if (this._linkedFetchStale) {
+      this._linkedFetch = this._linkMiddlewares();
+      this._linkedFetchStale = false;
+    }
+
     return createResponsePromise(
       this._linkedFetch || this._fetch,
-      url,
-      opts,
+      mergedURL,
+      mergedOptions,
       this._resolvers
     );
   },

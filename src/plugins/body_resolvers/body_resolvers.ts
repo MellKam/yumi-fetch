@@ -27,7 +27,7 @@ const BODY_RESOLVERS = {
  * ```ts
  * import { clientCore, bodyResolvers } from "yumi-fetch";
  *
- * const client = clientCore.withPlugin(bodyResolvers());
+ * const client = clientCore.withResolvers(bodyResolvers());
  *
  * type User = { ... };
  * const user = await client
