@@ -1,65 +1,31 @@
 /**
- * Represents a set of the most frequently used HTTP headers.
- */
-export type CommonHeaderName =
-  | "Accept"
-  | "Accept-Charset"
-  | "Accept-Encoding"
-  | "Accept-Language"
-  | "Authorization"
-  | "Cache-Control"
-  | "Content-Disposition"
-  | "Content-Encoding"
-  | "Content-Length"
-  | "Content-Type"
-  | "Cookie"
-  | "Date"
-  | "ETag"
-  | "Expires"
-  | "Host"
-  | "If-Modified-Since"
-  | "If-None-Match"
-  | "Last-Modified"
-  | "Location"
-  | "Origin"
-  | "Referer"
-  | "Server"
-  | "Set-Cookie"
-  | "User-Agent"
-  | "WWW-Authenticate";
-
-/**
- * Better-typed alternative to the `HeaderInit` type for initializing a new `Headers` object. It has a great autocomplete for the most common headers.
+ * Better-typed alternative to the `HeaderInit` type for initializing a new `Headers` object.
  */
 export type BetterHeaderInit =
   | Headers
-  | Record<CommonHeaderName, string>
   | Record<string, string>
-  | [CommonHeaderName, string][]
   | [string, string][];
 
-export type BetterRequestInit<T_RequestOptions> =
-  & RequestInit
-  & { headers?: BetterHeaderInit }
-  & Partial<T_RequestOptions>;
+export type BetterRequestInit<T_RequestOptions> = RequestInit & {
+  headers?: BetterHeaderInit;
+} & Partial<T_RequestOptions>;
 
-export type RequestOptions<T_RequestOptions> =
-  & RequestInit
-  & { headers: Headers }
-  & Partial<T_RequestOptions>;
+export type RequestOptions<T_RequestOptions> = RequestInit & {
+  headers: Headers;
+} & Partial<T_RequestOptions>;
 
 export type FetchLike<T_RequestOptions> = (
   url: URL,
-  options: RequestOptions<T_RequestOptions>,
+  options: RequestOptions<T_RequestOptions>
 ) => Promise<Response>;
 
 export type FetchMiddleware<T_RequestOptions> = (
-  next: FetchLike<T_RequestOptions>,
+  next: FetchLike<T_RequestOptions>
 ) => FetchLike<T_RequestOptions>;
 
 export interface ResponsePromise<
   T_RequestOptions = unknown,
-  T_Resolvers = unknown,
+  T_Resolvers = unknown
 > extends Promise<Response> {
   _url: URL;
   _opts: RequestOptions<T_RequestOptions>;
@@ -73,27 +39,27 @@ export interface ResponsePromise<
     onrejected?:
       | ((reason: any) => Response | PromiseLike<Response>)
       | undefined
-      | null,
+      | null
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
   _catch(
     onrejected?:
       | ((reason: any) => Response | PromiseLike<Response>)
       | undefined
-      | null,
+      | null
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
   _finally(
-    onfinally?: (() => void) | undefined | null,
+    onfinally?: (() => void) | undefined | null
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
 const createResponsePromise = <
   T_RequestOptions = unknown,
-  T_Resolvers = unknown,
+  T_Resolvers = unknown
 >(
   fetch: FetchLike<T_RequestOptions>,
   url: URL,
   opts: RequestOptions<T_RequestOptions>,
-  resolvers: T_Resolvers,
+  resolvers: T_Resolvers
 ) => {
   return {
     ...resolvers,
@@ -155,27 +121,25 @@ export type ClientPlugin<
   M_Resolvers = unknown,
   D_Self = unknown,
   D_RequestOptions = unknown,
-  D_Resolvers = unknown,
+  D_Resolvers = unknown
 > = <
   C_Self extends D_Self,
   C_RequestOptions extends D_RequestOptions,
-  C_Resolvers extends D_Resolvers,
+  C_Resolvers extends D_Resolvers
 >(
-  client:
-    & Client<
-      C_Self & M_Self,
-      C_RequestOptions & M_RequestOptions,
-      C_Resolvers & M_Resolvers
-    >
-    & C_Self,
-) =>
-  & Client<
+  client: Client<
     C_Self & M_Self,
     C_RequestOptions & M_RequestOptions,
     C_Resolvers & M_Resolvers
-  >
-  & C_Self
-  & M_Self;
+  > &
+    C_Self
+) => Client<
+  C_Self & M_Self,
+  C_RequestOptions & M_RequestOptions,
+  C_Resolvers & M_Resolvers
+> &
+  C_Self &
+  M_Self;
 
 export interface IHTTPError extends Error {
   readonly response: Response;
@@ -184,7 +148,7 @@ export interface IHTTPError extends Error {
 }
 
 export type HTTPErrorCreator = (
-  res: Response,
+  res: Response
 ) => IHTTPError | Promise<IHTTPError>;
 
 export class HTTPError extends Error implements IHTTPError {
@@ -193,7 +157,7 @@ export class HTTPError extends Error implements IHTTPError {
   constructor(
     public readonly response: Response,
     public readonly text?: string,
-    public readonly json?: unknown,
+    public readonly json?: unknown
   ) {
     super(`${response.status} ${response.statusText}`);
     this.name = "HTTPError";
@@ -240,9 +204,12 @@ type IsExtends<A, B> = A extends B ? true : false;
  * // false
  * ```
  */
-type AllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
+type AllEquals<T extends boolean[], U extends boolean> = T extends []
+  ? true
   : T extends [infer First extends boolean, ...infer Rest extends boolean[]]
-    ? U extends First ? AllEquals<Rest, U> : false
+  ? U extends First
+    ? AllEquals<Rest, U>
+    : false
   : never;
 
 /**
@@ -255,7 +222,7 @@ type AllEquals<T extends boolean[], U extends boolean> = T extends [] ? true
 export interface Client<
   T_Self = unknown,
   T_RequestOptions = unknown,
-  T_Resolvers = unknown,
+  T_Resolvers = unknown
 > {
   _baseURL: URL | undefined;
   withBaseURL(baseURL: string | URL): this;
@@ -271,21 +238,17 @@ export interface Client<
 
   _resolvers: T_Resolvers;
   withResolvers<M_Resolvers>(
-    resolvers:
-      & M_Resolvers
-      & ThisType<
-        & ResponsePromise<T_RequestOptions, T_Resolvers & M_Resolvers>
-        & T_Resolvers
-        & M_Resolvers
-      >,
-  ):
-    & Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers>
-    & T_Self;
+    resolvers: M_Resolvers &
+      ThisType<
+        ResponsePromise<T_RequestOptions, T_Resolvers & M_Resolvers> &
+          T_Resolvers &
+          M_Resolvers
+      >
+  ): Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers> & T_Self;
 
   withProperties<M_Self>(
-    self:
-      & M_Self
-      & ThisType<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>,
+    self: M_Self &
+      ThisType<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>
   ): Client<T_Self & M_Self, T_RequestOptions, T_Resolvers> & T_Self & M_Self;
 
   withPlugin<
@@ -294,7 +257,7 @@ export interface Client<
     M_Resolvers,
     D_Self,
     D_RequestOptions,
-    D_Resolvers,
+    D_Resolvers
   >(
     plugin: ClientPlugin<
       M_Self,
@@ -303,22 +266,22 @@ export interface Client<
       D_Self,
       D_RequestOptions,
       D_Resolvers
-    >,
+    >
   ): AllEquals<
     [
       IsExtends<T_Self, D_Self>,
       IsExtends<T_RequestOptions, D_RequestOptions>,
-      IsExtends<T_Resolvers, D_Resolvers>,
+      IsExtends<T_Resolvers, D_Resolvers>
     ],
     true
-  > extends true ?
-      & Client<
+  > extends true
+    ? Client<
         T_Self & M_Self,
         T_RequestOptions & M_RequestOptions,
         T_Resolvers & M_Resolvers
-      >
-      & T_Self
-      & M_Self
+      > &
+        T_Self &
+        M_Self
     : never;
 
   _middlewares: FetchMiddleware<T_RequestOptions>[];
@@ -331,7 +294,7 @@ export interface Client<
   _fetch: FetchLike<T_RequestOptions>;
   fetch(
     resource: URL | string,
-    options?: BetterRequestInit<T_RequestOptions>,
+    options?: BetterRequestInit<T_RequestOptions>
   ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
@@ -342,8 +305,7 @@ export interface Client<
 const mergeHeaders = (h1: BetterHeaderInit, h2?: BetterHeaderInit) => {
   const result = new Headers(h1);
   if (h2) {
-    new Headers(h2)
-      .forEach((value, key) => result.set(key, value));
+    new Headers(h2).forEach((value, key) => result.set(key, value));
   }
 
   return result;
@@ -359,20 +321,18 @@ const mergeHeaders = (h1: BetterHeaderInit, h2?: BetterHeaderInit) => {
  * @example
  * ```ts
  * new URL("/user", "http://example.com/api/")
- * // URL{ "http://example.com/user" } ☹️
+ * // URL{ "http://example.com/user" } 😕
  * mergeURLs("/user", "http://example.com/api/")
  * // URL{ "http://example.com/api/user" } 😃
  * ```
  */
-function mergeURLs(
-  url: URL | string,
-  base?: URL | string,
-): URL {
+function mergeURLs(url: URL | string, base?: URL | string): URL {
   if (base && url) {
     if (typeof url === "object") return new URL(url);
 
     const result = new URL(base);
-    result.pathname += (result.pathname.endsWith("/") ? "" : "/") +
+    result.pathname +=
+      (result.pathname.endsWith("/") ? "" : "/") +
       (url.startsWith("/") ? url.slice(1) : url);
 
     return result;
@@ -421,13 +381,12 @@ export const clientCore: Client = {
   _resolvers: {},
   withResolvers<T_Self, T_RequestOptions, T_Resolvers, M_Resolvers>(
     this: Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self,
-    resolvers:
-      & M_Resolvers
-      & ThisType<
-        & ResponsePromise<T_RequestOptions, T_Resolvers & M_Resolvers>
-        & T_Resolvers
-        & M_Resolvers
-      >,
+    resolvers: M_Resolvers &
+      ThisType<
+        ResponsePromise<T_RequestOptions, T_Resolvers & M_Resolvers> &
+          T_Resolvers &
+          M_Resolvers
+      >
   ) {
     return {
       ...this,
@@ -435,7 +394,7 @@ export const clientCore: Client = {
     };
   },
   withProperties(self) {
-    return { ...this as any, ...self };
+    return { ...(this as any), ...self };
   },
   withPlugin(plugin) {
     return plugin(this as any);
@@ -454,10 +413,7 @@ export const clientCore: Client = {
     return this.withMiddlewares([middleware]);
   },
   _linkMiddlewares() {
-    return this._middlewares.reduceRight(
-      (next, mw) => mw(next),
-      this._fetch,
-    );
+    return this._middlewares.reduceRight((next, mw) => mw(next), this._fetch);
   },
   _linkedFetch: null,
   async _fetch(url, options) {
@@ -477,7 +433,7 @@ export const clientCore: Client = {
       this._linkedFetch || this._fetch,
       url,
       opts,
-      this._resolvers,
+      this._resolvers
     );
   },
 };

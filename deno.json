@@ -3,6 +3,13 @@
     "build": "deno run -A npm:vite build && deno run -A npm:typescript/tsc",
     "benchmark": "deno bench -A ./benchmarks/basic.ts"
   },
+  "fmt": {
+    "useTabs": true,
+    "lineWidth": 80,
+    "singleQuote": false,
+    "semiColons": true,
+    "indentWidth": 2
+  },
   "lint": {
     "rules": {
       "exclude": ["ban-types", "no-explicit-any"]

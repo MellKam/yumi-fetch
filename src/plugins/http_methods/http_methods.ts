@@ -1,35 +1,12 @@
-import {
-  BetterRequestInit,
-  Client,
-  ClientPlugin,
-  ResponsePromise,
-} from "../../core.ts";
+import { BetterRequestInit, Client, ResponsePromise } from "../../core.ts";
 
-export type HTTPMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE";
-
-const HTTP_METHODS: readonly HTTPMethod[] = [
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-] as const;
-
-type HTTPFetchMethod = <
-  T_RequestOptions,
-  T_Resolvers,
->(
+type HTTPFetchMethod = <T_RequestOptions, T_Resolvers>(
   this: Client<unknown, T_RequestOptions, T_Resolvers>,
   resource: URL | string,
-  options?: Omit<BetterRequestInit<T_RequestOptions>, "method">,
+  options?: Omit<BetterRequestInit<T_RequestOptions>, "method">
 ) => ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 
-export type HTTPMethods = {
+export type HTTPMethods<HTTPMethod extends string> = {
   [_ in Lowercase<HTTPMethod>]: HTTPFetchMethod;
 };
 
@@ -50,22 +27,32 @@ export type HTTPMethods = {
  * client.post("/todos")
  * ```
  */
-export const httpMethods: ClientPlugin<HTTPMethods> = (client) => {
-  const methods = {} as HTTPMethods;
 
-  for (const method of HTTP_METHODS) {
-    methods[method.toLowerCase() as Lowercase<HTTPMethod>] = function <
+type DefaultMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export const httpMethods = <const T extends string = DefaultMethods>(
+  methodNames: readonly T[] = [
+    "GET" as T,
+    "POST" as T,
+    "PUT" as T,
+    "PATCH" as T,
+    "DELETE" as T,
+  ]
+) => {
+  const methods = {} as HTTPMethods<T>;
+
+  for (const method of methodNames) {
+    methods[method.toLowerCase() as Lowercase<T>] = function <
       T_RequestOptions,
-      T_Resolvers,
+      T_Resolvers
     >(
       this: Client<unknown, T_RequestOptions, T_Resolvers>,
       resource: URL | string,
-      options = {},
+      options = {}
     ) {
       (options as RequestInit).method = method;
       return this.fetch(resource, options);
     };
   }
 
-  return client.withProperties(methods);
+  return methods;
 };

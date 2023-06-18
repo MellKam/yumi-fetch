@@ -6,8 +6,8 @@ import { bodyResolvers, httpMethods, json, query } from "./plugins/mod.ts";
  * Basically provides you with boilerplate code, saving you from having to manually include these plug-ins yourself.
  */
 export const yumi = clientCore
-  .withPlugin(httpMethods)
-  .withPlugin(bodyResolvers())
+  .withProperties(httpMethods())
+  .withResolvers(bodyResolvers())
   .withPlugin(query())
   .withPlugin(json());
 
