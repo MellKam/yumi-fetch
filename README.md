@@ -77,3 +77,9 @@ const createdTodo = await client
 
 console.log(createdTodo);
 ```
+
+Here you can see very simple api that is simmilar to fetch but with global instance as axios.
+
+# Inspiration
+
+Yumi was inspired by many other http client packages. I tried to take the best parts from each of them, and I want to mention a few that helped me a lot. [Wretch](https://github.com/elbywan/wretch), [Ky](https://github.com/sindresorhus/ky), [Ya-fetch](https://github.com/exah/ya-fetch), and even a bit [Axios](https://github.com/axios/axios), even though it doesn't use the fetch API.

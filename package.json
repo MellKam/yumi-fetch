@@ -1,6 +1,6 @@
 {
   "name": "yumi-fetch",
-  "version": "0.2.0-beta.0",
+  "version": "0.2.1-beta.0",
   "description": "🍭 An extensible fetch wrapper for simplified and powerful HTTP requests using native web APIs",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -58,7 +58,6 @@
     "api",
     "rest",
     "http",
-    "ajax",
     "network",
     "middleware",
     "extensible",
