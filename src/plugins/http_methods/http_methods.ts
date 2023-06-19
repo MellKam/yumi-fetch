@@ -1,13 +1,13 @@
 import { BetterRequestInit, Client, ResponsePromise } from "../../core.ts";
 
 type HTTPFetchMethod = <T_RequestOptions, T_Resolvers>(
-  this: Client<unknown, T_RequestOptions, T_Resolvers>,
-  resource: URL | string,
-  options?: Omit<BetterRequestInit<T_RequestOptions>, "method">
+	this: Client<unknown, T_RequestOptions, T_Resolvers>,
+	resource: URL | string,
+	options?: Omit<BetterRequestInit<T_RequestOptions>, "method">,
 ) => ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 
 export type HTTPMethods<HTTPMethod extends string> = {
-  [_ in Lowercase<HTTPMethod>]: HTTPFetchMethod;
+	[_ in Lowercase<HTTPMethod>]: HTTPFetchMethod;
 };
 
 /**
@@ -30,29 +30,29 @@ export type HTTPMethods<HTTPMethod extends string> = {
 
 export type DefaultMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 export const httpMethods = <const T extends string = DefaultMethods>(
-  methodNames: readonly T[] = [
-    "GET" as T,
-    "POST" as T,
-    "PUT" as T,
-    "PATCH" as T,
-    "DELETE" as T,
-  ]
+	methodNames: readonly T[] = [
+		"GET" as T,
+		"POST" as T,
+		"PUT" as T,
+		"PATCH" as T,
+		"DELETE" as T,
+	],
 ) => {
-  const methods = {} as HTTPMethods<T>;
+	const methods = {} as HTTPMethods<T>;
 
-  for (const method of methodNames) {
-    methods[method.toLowerCase() as Lowercase<T>] = function <
-      T_RequestOptions,
-      T_Resolvers
-    >(
-      this: Client<unknown, T_RequestOptions, T_Resolvers>,
-      resource: URL | string,
-      options = {}
-    ) {
-      (options as RequestInit).method = method;
-      return this.fetch(resource, options);
-    };
-  }
+	for (const method of methodNames) {
+		methods[method.toLowerCase() as Lowercase<T>] = function <
+			T_RequestOptions,
+			T_Resolvers,
+		>(
+			this: Client<unknown, T_RequestOptions, T_Resolvers>,
+			resource: URL | string,
+			options = {},
+		) {
+			(options as RequestInit).method = method;
+			return this.fetch(resource, options);
+		};
+	}
 
-  return methods;
+	return methods;
 };

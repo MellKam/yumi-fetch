@@ -9,26 +9,26 @@ import { timeout } from "./timeout.ts";
 // });
 
 type Todo = {
-  id: number;
-  todo: string;
-  completed: boolean;
-  userId: number;
+	id: number;
+	todo: string;
+	completed: boolean;
+	userId: number;
 };
 
 type Todos = {
-  todos: Todo[];
-  total: number;
-  skip: number;
-  limit: number;
+	todos: Todo[];
+	total: number;
+	skip: number;
+	limit: number;
 };
 
 const client = yumi.withPlugin(timeout(100));
 
 client
-  .post("https://dummyjson.com/todos", {
-    timeout: 200,
-  })
-  .onTimeout((url, opts, err) => {
-    console.log(url, opts, err);
-  })
-  .json<Todos>();
+	.post("https://dummyjson.com/todos", {
+		timeout: 200,
+	})
+	.onTimeout((url, opts, err) => {
+		console.log(url, opts, err);
+	})
+	.json<Todos>();

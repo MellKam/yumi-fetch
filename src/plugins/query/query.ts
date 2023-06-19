@@ -1,12 +1,12 @@
 import { ClientPlugin } from "../../core.ts";
 
 export type QueryParams = {
-  [k: string]:
-    | string
-    | number
-    | boolean
-    | readonly (string | number | boolean)[]
-    | undefined;
+	[k: string]:
+		| string
+		| number
+		| boolean
+		| readonly (string | number | boolean)[]
+		| undefined;
 };
 
 /**
@@ -31,17 +31,17 @@ export type QueryParams = {
  * ```
  */
 export const query =
-  <QueryType = QueryParams>(): ClientPlugin<unknown, { query: QueryType }> =>
-  (
-    client,
-  ) => {
-    return client.withMiddleware((next) => (url, opts) => {
-      if (opts.query) {
-        for (const key in opts.query) {
-          const value = opts.query[key];
-          if (value) url.searchParams.set(key, value.toString());
-        }
-      }
-      return next(url, opts);
-    });
-  };
+	<QueryType = QueryParams>(): ClientPlugin<unknown, { query: QueryType }> =>
+	(
+		client,
+	) => {
+		return client.withMiddleware((next) => (url, opts) => {
+			if (opts.query) {
+				for (const key in opts.query) {
+					const value = opts.query[key];
+					if (value) url.searchParams.set(key, value.toString());
+				}
+			}
+			return next(url, opts);
+		});
+	};

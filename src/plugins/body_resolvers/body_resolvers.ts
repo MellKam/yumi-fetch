@@ -1,19 +1,19 @@
 import { ResponsePromise } from "../../core.ts";
 
 export type BodyResolvers<JSONType = unknown> = {
-  json<T extends JSONType = JSONType>(this: ResponsePromise): Promise<T>;
-  text(this: ResponsePromise): Promise<string>;
-  arrayBuffer(this: ResponsePromise): Promise<ArrayBuffer>;
-  blob(this: ResponsePromise): Promise<Blob>;
-  formData(this: ResponsePromise): Promise<FormData>;
+	json<T extends JSONType = JSONType>(this: ResponsePromise): Promise<T>;
+	text(this: ResponsePromise): Promise<string>;
+	arrayBuffer(this: ResponsePromise): Promise<ArrayBuffer>;
+	blob(this: ResponsePromise): Promise<Blob>;
+	formData(this: ResponsePromise): Promise<FormData>;
 };
 
 const BODY_RESOLVERS = {
-  json: "application/json",
-  text: "text/*",
-  arrayBuffer: "*/*",
-  blob: "*/*",
-  formData: "multipart/form-data",
+	json: "application/json",
+	text: "text/*",
+	arrayBuffer: "*/*",
+	blob: "*/*",
+	formData: "multipart/form-data",
 } as Record<keyof BodyResolvers, string>;
 
 /**
@@ -36,19 +36,19 @@ const BODY_RESOLVERS = {
  * ```
  */
 export const bodyResolvers = <JSONType = unknown>() => {
-  const resolvers = {} as BodyResolvers<JSONType>;
+	const resolvers = {} as BodyResolvers<JSONType>;
 
-  for (const resolver in BODY_RESOLVERS) {
-    resolvers[resolver as keyof BodyResolvers<JSONType>] = async function (
-      this: ResponsePromise
-    ) {
-      this._opts.headers.set(
-        "Accept",
-        BODY_RESOLVERS[resolver as keyof BodyResolvers]
-      );
-      return (await this)[resolver as keyof BodyResolvers]();
-    };
-  }
+	for (const resolver in BODY_RESOLVERS) {
+		resolvers[resolver as keyof BodyResolvers<JSONType>] = async function (
+			this: ResponsePromise,
+		) {
+			this._opts.headers.set(
+				"Accept",
+				BODY_RESOLVERS[resolver as keyof BodyResolvers],
+			);
+			return (await this)[resolver as keyof BodyResolvers]();
+		};
+	}
 
-  return resolvers;
+	return resolvers;
 };
