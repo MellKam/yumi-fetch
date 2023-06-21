@@ -78,8 +78,80 @@ const createdTodo = await client
 console.log(createdTodo);
 ```
 
-Here you can see very simple api that is simmilar to fetch but with global instance as axios.
+Here you can find a straightforward API that is similar to the `fetch` function but with several notable improvements. You may be familiar with these features from libraries like `axios`, etc.. Firstly, it includes functions named after HTTP methods, such as `.post()` and `.get()`, which make it more intuitive and convenient to perform these actions. Additionally, the API provides simplified serialization capabilities and includes a `.json()` resolver for easy handling of JSON data.
+
+<details>
+  <summary>For comparison, here's a code snippet using the plain fetch function</summary>
+  
+  ```ts
+  type Todo = {
+    id: number;
+    todo: string;
+    completed: boolean;
+    userId: number;
+  };
+
+  type Todos = {
+    todos: Todo[];
+    total: number;
+    skip: number;
+    limit: number;
+  };
+
+  const res = await fetch("https://dummyjson.com/todos?limit=2", 
+    { 
+      headers: { "Accept": "application/json" } 
+    }
+  );
+  if (!res.ok) throw new Error(await res.text());
+  const { todos } = (await res.json()) as Todos;
+
+  console.log(todos);
+
+  const res2 = await fetch("https://dummyjson.com/todos/add", 
+    { 
+      method: "POST",
+      headers: { 
+        "Accept": "application/json", 
+        "Content-Type": "application/json" 
+      },
+      body: JSON.stringify({
+        todo: "Star Yumi-Fetch repository",
+        completed: false,
+        userId: 5,
+      }) 
+    }
+  );
+
+  if (!res.ok) throw new Error(await res.text());
+  const createdTodo = (await res.json()) as Todo;
+
+  console.log(createdTodo);
+  ```
+</details>
+
+
+
+__Imagine a scenario where I told you that all these incredible features can be easily attached to your client as modular plug-ins, allowing you to effortlessly expand its functionality. Well, guess what? It's absolutely true!__
+
+The `yumi` object we imported is essentially a client that has been enhanced with custom modifications on top of it.
+
+```ts
+import { clientCore, /* ... */ } from "yumi-fetch";
+
+export const yumi = clientCore
+  // adds http methods like .get(), .post(), .put() ...
+  .withProperties(httpMethods()) 
+  // adds response resolvers .json(), .text(), .formData() ...
+  .withResolvers(bodyResolvers())
+  // adds query serialization
+  .withPlugin(query())
+  // adds json serialization
+  .withPlugin(json());
+```
+
+The beauty of this approach is that all these plug-ins seamlessly modify the client type, making it a breeze to work with TypeScript. By composing these plug-ins together, you can create a powerful and flexible client that meets your specific needs.
 
 # Inspiration
 
-Yumi was inspired by many other http client packages. I tried to take the best parts from each of them, and I want to mention a few that helped me a lot. [Wretch](https://github.com/elbywan/wretch), [Ky](https://github.com/sindresorhus/ky), [Ya-fetch](https://github.com/exah/ya-fetch), and even a bit [Axios](https://github.com/axios/axios), even though it doesn't use the fetch API.
+Yumi was inspired by many other http client packages. I tried to take the best parts from each of them, and I want to mention a few that helped me a lot. [Wretch](https://github.com/elbywan/wretch), [Ky](https://github.com/sindresorhus/ky), [Ya-fetch](https://github.com/exah/ya-fetch), [Axios](https://github.com/axios/axios).
