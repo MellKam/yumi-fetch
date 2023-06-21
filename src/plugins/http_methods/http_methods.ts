@@ -1,9 +1,9 @@
-import { BetterRequestInit, Client, ResponsePromise } from "../../core.ts";
+import { Client, ResponsePromise } from "../../core.ts";
 
 type HTTPFetchMethod = <T_RequestOptions, T_Resolvers>(
 	this: Client<unknown, T_RequestOptions, T_Resolvers>,
 	resource: URL | string,
-	options?: Omit<BetterRequestInit<T_RequestOptions>, "method">,
+	options?: Omit<RequestInit, "method"> & Partial<T_RequestOptions>,
 ) => ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 
 export type HTTPMethods<HTTPMethod extends string> = {

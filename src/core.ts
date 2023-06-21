@@ -5,22 +5,7 @@ import {
 	mergeURLs,
 } from "./utils.ts";
 
-/**
- * Better-typed alternative to the `HeaderInit` type for initializing a new `Headers` object.
- */
-export type BetterHeadersInit =
-	| Headers
-	| Record<string, string>
-	| [string, string][];
-
-export type BetterRequestInit<T_RequestOptions = unknown> = RequestInit & {
-	headers?: BetterHeadersInit;
-} & Partial<T_RequestOptions>;
-
-/**
- * Request options that will be passed to middlewares after the merging with global client options and headers.
- */
-export type RequestOptions<T_RequestOptions> = RequestInit & {
+export type RequestOptions<T_RequestOptions = unknown> = RequestInit & {
 	headers: Headers;
 } & Partial<T_RequestOptions>;
 
@@ -33,10 +18,10 @@ export type FetchMiddleware<T_RequestOptions = unknown> = (
 	next: FetchLike<T_RequestOptions>,
 ) => FetchLike<T_RequestOptions>;
 
-export type ResponsePromise<
+export interface ResponsePromise<
 	T_RequestOptions = unknown,
 	T_Resolvers = unknown,
-> = Promise<Response> & {
+> extends Promise<Response> {
 	_url: URL;
 	_opts: RequestOptions<T_RequestOptions>;
 	_fetch: FetchLike<T_RequestOptions>;
@@ -60,7 +45,7 @@ export type ResponsePromise<
 	_finally(
 		onfinally?: (() => void) | undefined | null,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
-};
+}
 
 export const createResponsePromise = <
 	T_RequestOptions = unknown,
@@ -193,24 +178,21 @@ export class HTTPError extends Error implements IHTTPError {
 		return this.response.url;
 	}
 
-	static async create(res: Response) {
+	static create(res: Response) {
 		if (!res.body) {
 			return new HTTPError(res);
 		}
 
-		let text: string;
-		try {
-			text = await res.text();
-		} catch (_) {
-			return new HTTPError(res);
-		}
+		let text: string | undefined;
+		let json: unknown | undefined;
 
-		let json: unknown;
-		try {
-			json = JSON.parse(text);
-		} catch (_) {
-			return new HTTPError(res, text);
-		}
+		res
+			.text()
+			.then((t) => {
+				text = t;
+				json = JSON.parse(text);
+			})
+			.catch();
 
 		return new HTTPError(res, text, json);
 	}
@@ -228,18 +210,45 @@ export interface Client<
 	T_RequestOptions = unknown,
 	T_Resolvers = unknown,
 > {
+	/**
+	 * @internal
+	 */
 	_baseURL: URL | undefined;
+	/**
+	 * @returns Shallow clone of the client with specified baseURL
+	 */
 	withBaseURL(baseURL: string | URL): this;
 
+	/**
+	 * @internal
+	 */
 	_headers: Headers;
-	withHeaders(init: BetterHeadersInit): this;
+	/**
+	 * @returns Shallow clone of the client with new headers that are obtained by merging the current headers with the specified headers.
+	 */
+	withHeaders(headersInit: HeadersInit): this;
 
+	/**
+	 * @internal
+	 */
 	_options: Omit<RequestInit, "headers">;
+	/**
+	 * @returns Shallow clone of the client with new options that are obtained by merging the current options with the specified options.
+	 */
 	withOptions(options: Omit<RequestInit, "headers">): this;
 
+	/**
+	 * @internal
+	 */
 	_errorCreator: HTTPErrorCreator;
-	withCustomError(errorCreator: HTTPErrorCreator): this;
+	/**
+	 * @returns Shallow clone of the client with specified errorCreator
+	 */
+	withErrorCreator(errorCreator: HTTPErrorCreator): this;
 
+	/**
+	 * @internal
+	 */
 	_resolvers: T_Resolvers;
 	withResolvers<M_Resolvers>(
 		resolvers:
@@ -249,13 +258,31 @@ export interface Client<
 				& T_Resolvers
 				& M_Resolvers
 			>,
-	): Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers> & T_Self;
+	):
+		& Client<
+			T_Self,
+			T_RequestOptions,
+			T_Resolvers & M_Resolvers
+		>
+		& T_Self;
 
+	/**
+	 * @template M_Self Properties object that will modify the current client type, in particular `T_Self` generic
+	 *
+	 * @returns Shallow clone of the client with new specified properties
+	 */
 	withProperties<M_Self>(
 		self:
 			& M_Self
 			& ThisType<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>,
-	): Client<T_Self & M_Self, T_RequestOptions, T_Resolvers> & T_Self & M_Self;
+	):
+		& Client<
+			T_Self & M_Self,
+			T_RequestOptions,
+			T_Resolvers
+		>
+		& T_Self
+		& M_Self;
 
 	withPlugin<
 		M_Self,
@@ -290,14 +317,36 @@ export interface Client<
 			& M_Self
 		: never;
 
+	/**
+	 * @internal
+	 */
 	_middlewares: FetchMiddleware<T_RequestOptions>[];
+	/**
+	 * @returns Shallow clone of the client with new list of middlewares that is obtained by merging the current list of middlewares and the specified list.
+	 */
 	withMiddlewares<M_RequestOptions>(
 		middlewares: FetchMiddleware<T_RequestOptions & M_RequestOptions>[],
-	): Client<T_Self, T_RequestOptions & M_RequestOptions, T_Resolvers> & T_Self;
+	):
+		& Client<
+			T_Self,
+			T_RequestOptions & M_RequestOptions,
+			T_Resolvers
+		>
+		& T_Self;
+	/**
+	 * Shortcut for `withMiddlewares()` to insert only one item
+	 *
+	 * @returns Shallow clone of the client with new list of middlewares that is obtained by merging the current list of middlewares and the specified middleware.
+	 */
 	withMiddleware<M_RequestOptions>(
 		middleware: FetchMiddleware<T_RequestOptions & M_RequestOptions>,
-	): Client<T_Self, T_RequestOptions & M_RequestOptions, T_Resolvers> & T_Self;
-
+	):
+		& Client<
+			T_Self,
+			T_RequestOptions & M_RequestOptions,
+			T_Resolvers
+		>
+		& T_Self;
 	/**
 	 * @internal Cache for the fetch linked with middlewares
 	 */
@@ -350,10 +399,13 @@ export interface Client<
 	 */
 	_linkedFetchStale: boolean;
 
+	/**
+	 * @internal
+	 */
 	_fetch: FetchLike<T_RequestOptions>;
 	fetch(
 		resource: URL | string,
-		options?: BetterRequestInit<T_RequestOptions>,
+		options?: RequestInit & Partial<T_RequestOptions>,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
@@ -361,9 +413,11 @@ export interface Client<
  * The plain object that implements `Client` interface.
  * You don't need to instantiate it to use it, as you do with classes.
  *
+ * The clientCore automatically handles HTTP errors for you. It checks each response using the "res.ok" field, and if it's not okay, it throws an error. This default error handling is helpful when writing middlewares because it provides a reliable way to handle errors.
+ *
  * #### Why plain object and not class ???
  * There were many attempts to write it in classes, but nothing succeeded. It was especially difficult to satisfy typescript. So it was decided to choose objects instead of classes.
- * In spite of this, in some places we still have to lie to the about types.
+ * In spite of this, in some places we still have to lie to the typescript about types.
  *
  * #### Concept of public and private fields
  * Basically, since we don't use classes, we have to manage our private fields ourselves. In our case, we treat fields starting with `_` (underscore) as private, and any others as public.
@@ -374,25 +428,12 @@ export const clientCore: Client = {
 		return { ...this, _baseURL: new URL(baseURL) };
 	},
 	_headers: new Headers(),
-	withHeaders(init) {
-		return {
-			...this,
-			_headers: mergeHeaders(this._headers, init),
-		};
+	withHeaders(headersInit) {
+		return { ...this, _headers: mergeHeaders(this._headers, headersInit) };
 	},
 	_options: {},
 	withOptions(options) {
-		return {
-			...this,
-			_options: { ...this._options, ...options },
-		};
-	},
-	_errorCreator: HTTPError.create,
-	withCustomError(errorCreator) {
-		return {
-			...this,
-			_errorCreator: errorCreator,
-		};
+		return { ...this, _options: { ...this._options, ...options } };
 	},
 	_resolvers: {},
 	withResolvers<T_Self, T_RequestOptions, T_Resolvers, M_Resolvers>(
@@ -410,8 +451,18 @@ export const clientCore: Client = {
 			_resolvers: { ...this._resolvers, ...resolvers },
 		};
 	},
-	withProperties(self) {
-		return { ...(this as any), ...self };
+	withProperties<T_Self, T_RequestOptions, T_Resolvers, M_Self>(
+		this: Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self,
+		self:
+			& M_Self
+			& ThisType<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>,
+	) {
+		return {
+			...(this as
+				& Client<T_Self & M_Self, T_RequestOptions, T_Resolvers>
+				& T_Self),
+			...self,
+		};
 	},
 	withPlugin(plugin) {
 		return plugin(this as any);
@@ -432,6 +483,13 @@ export const clientCore: Client = {
 		return this._middlewares.reduceRight((next, mw) => mw(next), this._fetch);
 	},
 	_linkedFetchStale: false,
+	_errorCreator: HTTPError.create,
+	withErrorCreator(errorCreator) {
+		return {
+			...this,
+			_errorCreator: errorCreator,
+		};
+	},
 	async _fetch(url, options) {
 		const res = await globalThis.fetch(url, options);
 		if (res.ok) return res;
