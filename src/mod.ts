@@ -28,3 +28,4 @@ export const yumi = clientCore
 	.withPlugin(json()) as Yumi;
 
 export * from "./core.ts";
+export * from "./http_error.ts";

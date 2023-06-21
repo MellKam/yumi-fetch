@@ -4,6 +4,7 @@ import {
 	mergeHeaders,
 	mergeURLs,
 } from "./utils.ts";
+import { HTTPError, IHTTPError } from "./http_error.ts";
 
 export type RequestOptions<T_RequestOptions = unknown> = RequestInit & {
 	headers: Headers;
@@ -138,65 +139,9 @@ export type ClientPlugin<
 	& C_Self
 	& M_Self;
 
-export interface IHTTPError extends Error {
-	readonly response: Response;
-	readonly status: number;
-	readonly url: string;
-}
-
-export const isHTTPError = (err: unknown): err is IHTTPError => {
-	return (
-		typeof err === "object" &&
-		err !== null &&
-		"response" in err &&
-		err.response instanceof Response &&
-		"status" in err &&
-		typeof err.status === "number" &&
-		"url" in err &&
-		typeof err.url === "string"
-	);
-};
-
 export type HTTPErrorCreator = (
 	res: Response,
 ) => IHTTPError | Promise<IHTTPError>;
-
-export class HTTPError extends Error implements IHTTPError {
-	readonly status: number;
-
-	constructor(
-		public readonly response: Response,
-		public readonly text?: string,
-		public readonly json?: unknown,
-	) {
-		super(`${response.status} ${response.statusText}`);
-		this.name = "HTTPError";
-		this.status = response.status;
-	}
-
-	get url() {
-		return this.response.url;
-	}
-
-	static create(res: Response) {
-		if (!res.body) {
-			return new HTTPError(res);
-		}
-
-		let text: string | undefined;
-		let json: unknown | undefined;
-
-		res
-			.text()
-			.then((t) => {
-				text = t;
-				json = JSON.parse(text);
-			})
-			.catch();
-
-		return new HTTPError(res, text, json);
-	}
-}
 
 /**
  * Extensible HTTP client entity

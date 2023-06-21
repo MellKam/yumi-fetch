@@ -1,4 +1,5 @@
-import { ClientPlugin, isHTTPError } from "../../core.ts";
+import { ClientPlugin } from "../../core.ts";
+import { isHTTPError } from "../../http_error.ts";
 
 export type AuthOptions = {
 	/**
