@@ -123,8 +123,8 @@ Here you can find a straightforward API that is similar to the `fetch` function 
     }
   );
 
-  if (!res.ok) throw new Error(await res.text());
-  const createdTodo = (await res.json()) as Todo;
+  if (!res2.ok) throw new Error(await res.text());
+  const createdTodo = (await res2.json()) as Todo;
 
   console.log(createdTodo);
   ```
@@ -152,6 +152,16 @@ export const yumi = clientCore
 
 The beauty of this approach is that all these plug-ins seamlessly modify the client type, making it a breeze to work with TypeScript. By composing these plug-ins together, you can create a powerful and flexible client that meets your specific needs.
 
+# Minimal bundle size comparison
+
+| Package | Base API | Minified size | Minified and gzipped size |
+| --- | --- | --- | --- |
+| yumi-fetch | fetch | <a href="https://bundlejs.com/?q=yumi-fetch&treeshake=%5B%7Byumi%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=yumi-fetch&treeshake=[{yumi}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=yumi-fetch&treeshake=%5B%7Byumi%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=yumi-fetch&treeshake=[{yumi}]&badge=" /></a> |
+| <a href="https://github.com/elbywan/wretch">wretch</a> | fetch | <a href="https://bundlejs.com/?q=wretch&treeshake=%5B%7Bdefault+as+wretch%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=wretch&treeshake=[{default+as+wretch}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=wretch&treeshake=%5B%7Bdefault+as+wretch%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=wretch&treeshake=[{default+as+wretch}]&badge=" /></a> |
+| <a href="https://github.com/sindresorhus/ky">ky</a> | fetch | <a href="https://bundlejs.com/?q=ky&treeshake=%5B%7Bdefault+as+ky%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=ky&treeshake=[{default+as+ky}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=ky&treeshake=%5B%7Bdefault+as+ky%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=ky&treeshake=[{default+as+ky}]&badge=" /></a> |
+| <a href="https://github.com/axios/axios">axios</a> | XMLHttpRequest | <a href="https://bundlejs.com/?q=axios&treeshake=%5B%7Baxios%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=axios&treeshake=[{axios}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=axios&treeshake=%5B%7Baxios%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=axios&treeshake=[{axios}]&badge=" /></a> |
+| <a href="https://github.com/sindresorhus/got">got</a> | XMLHttpRequest | <a href="https://bundlejs.com/?q=got&treeshake=%5B%7Bdefault+as+got%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=got&treeshake=[{default+as+got}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=got&treeshake=%5B%7Bdefault+as+got%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=got&treeshake=[{default+as+got}]&badge=" /></a> |
+
 # Inspiration
 
-Yumi was inspired by many other http client packages. I tried to take the best parts from each of them, and I want to mention a few that helped me a lot. [Wretch](https://github.com/elbywan/wretch), [Ky](https://github.com/sindresorhus/ky), [Ya-fetch](https://github.com/exah/ya-fetch), [Axios](https://github.com/axios/axios).
+Yumi was inspired by many other http client packages. I tried to take the best parts from each of them, and I want to mention a few that helped me a lot. [Wretch](https://github.com/elbywan/wretch), [Ky](https://github.com/sindresorhus/ky), [Ya-fetch](https://github.com/exah/ya-fetch).
