@@ -6,5 +6,6 @@
     "examples/deno-basic",
     "examples/deno-retry"
   ],
-  "deno.unstable": true
+  "deno.unstable": true,
+  "editor.defaultFormatter": "denoland.vscode-deno",
 }

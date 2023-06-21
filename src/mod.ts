@@ -1,17 +1,18 @@
 import { Client, clientCore } from "./core.ts";
 import {
-  BodyResolvers,
-  bodyResolvers,
-  DefaultMethods,
-  HTTPMethods,
-  httpMethods,
-  json,
-  query,
-  QueryParams,
+	BodyResolvers,
+	bodyResolvers,
+	DefaultMethods,
+	HTTPMethods,
+	httpMethods,
+	json,
+	query,
+	QueryParams,
 } from "./plugins/mod.ts";
 
-export type Yumi = Client<YumiSelf, YumiRequestOptions, YumiResolvers> &
-  YumiSelf;
+export type Yumi =
+	& Client<YumiSelf, YumiRequestOptions, YumiResolvers>
+	& YumiSelf;
 export type YumiSelf = HTTPMethods<DefaultMethods>;
 export type YumiRequestOptions = { query: QueryParams } & { json: unknown };
 export type YumiResolvers = BodyResolvers<unknown>;
@@ -21,9 +22,9 @@ export type YumiResolvers = BodyResolvers<unknown>;
  * Basically provides you with boilerplate code, saving you from having to manually include these plug-ins yourself.
  */
 export const yumi = clientCore
-  .withProperties(httpMethods())
-  .withResolvers(bodyResolvers())
-  .withPlugin(query())
-  .withPlugin(json()) as Yumi;
+	.withProperties(httpMethods())
+	.withResolvers(bodyResolvers())
+	.withPlugin(query())
+	.withPlugin(json()) as Yumi;
 
 export * from "./core.ts";

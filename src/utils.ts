@@ -16,12 +16,12 @@
  * ```
  */
 export const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
-  const result = new Headers(h1);
-  if (h2) {
-    new Headers(h2).forEach((value, key) => result.set(key, value));
-  }
+	const result = new Headers(h1);
+	if (h2) {
+		new Headers(h2).forEach((value, key) => result.set(key, value));
+	}
 
-  return result;
+	return result;
 };
 
 /**
@@ -41,18 +41,17 @@ export const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
  * ```
  */
 export const mergeURLs = (url: URL | string, base?: URL | string): URL => {
-  if (base && url) {
-    if (typeof url === "object") return new URL(url);
+	if (base && url) {
+		if (typeof url === "object") return new URL(url);
 
-    const result = new URL(base);
-    result.pathname +=
-      (result.pathname.endsWith("/") ? "" : "/") +
-      (url.startsWith("/") ? url.slice(1) : url);
+		const result = new URL(base);
+		result.pathname += (result.pathname.endsWith("/") ? "" : "/") +
+			(url.startsWith("/") ? url.slice(1) : url);
 
-    return result;
-  }
+		return result;
+	}
 
-  return base ? new URL(base) : new URL(url);
+	return base ? new URL(base) : new URL(url);
 };
 
 export type IsExtends<A, B> = A extends B ? true : false;
@@ -69,12 +68,10 @@ export type IsExtends<A, B> = A extends B ? true : false;
  * ```
  */
 export type AllBooelanEquals<
-  T extends boolean[],
-  U extends boolean
-> = T extends []
-  ? true
-  : T extends [infer First extends boolean, ...infer Rest extends boolean[]]
-  ? U extends First
-    ? AllBooelanEquals<Rest, U>
-    : false
-  : never;
+	T extends boolean[],
+	U extends boolean,
+> = T extends [] ? true
+	: T extends [infer First extends boolean, ...infer Rest extends boolean[]]
+		? U extends First ? AllBooelanEquals<Rest, U>
+		: false
+	: never;
