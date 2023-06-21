@@ -26,5 +26,5 @@
     "allowUnusedLabels": false
   },
   "include": ["./src/**/*.ts"],
-  "exclude": ["node_modules", "./src/**/*.demo.ts"]
+  "exclude": ["node_modules", "./src/**/*.demo.ts", "./src/**/*.test.ts"]
 }

@@ -2,6 +2,7 @@
   "tasks": {
     "build": "deno run -A npm:vite build && deno run -A npm:typescript/tsc",
     "benchmark": "deno bench -A ./benchmarks/basic.ts",
+    "test": "deno test -A",
     "lint:check": "deno lint && deno fmt --check"
   },
   "fmt": {

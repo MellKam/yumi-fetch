@@ -2,6 +2,10 @@
   "version": "2",
   "remote": {
     "https://crux.land/api/get/2KNRVU.ts": "6a77d55844aba78d01520c5ff0b2f0af7f24cc1716a0de8b3bb6bd918c47b5ba",
+    "https://deno.land/std@0.192.0/fmt/colors.ts": "d67e3cd9f472535241a8e410d33423980bec45047e343577554d3356e1f0ef4e",
+    "https://deno.land/std@0.192.0/testing/_diff.ts": "1a3c044aedf77647d6cac86b798c6417603361b66b54c53331b312caeb447aea",
+    "https://deno.land/std@0.192.0/testing/_format.ts": "a69126e8a469009adf4cf2a50af889aca364c349797e63174884a52ff75cf4c7",
+    "https://deno.land/std@0.192.0/testing/asserts.ts": "e16d98b4d73ffc4ed498d717307a12500ae4f2cbe668f1a215632d19fcffc22f",
     "https://deno.land/x/mock_fetch@0.3.0/mod.ts": "7e7806c65ab17b2b684c334c4e565812bdaf504a3e9c938d2bb52bb67428bc89",
     "https://deno.land/x/yumi@v0.1.0-alpha.3/addons/body_resolvers.ts": "58849bec4e735bb3f6e666ce62bc6c5557393c12a09e8747b9662df80c42ecad",
     "https://deno.land/x/yumi@v0.1.0-alpha.3/addons/fetch_methods.ts": "6597b7a58790c21752cc3b3a4d5cefcebb402bdd46463f093b750a808629c5d3",
