@@ -15,7 +15,7 @@
     "removeComments": false,
     "lib": ["DOM", "ESNext", "DOM.Iterable"],
     "noUnusedLocals": true,
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
     "module": "ESNext",
     "target": "ESNext",
     "outDir": "dist",
@@ -26,5 +26,5 @@
     "allowUnusedLabels": false
   },
   "include": ["./src/**/*.ts"],
-  "exclude": ["node_modules", "./src/**/*.demo.ts"]
+  "exclude": ["node_modules", "./src/**/*.demo.ts", "./src/**/*.test.ts"]
 }

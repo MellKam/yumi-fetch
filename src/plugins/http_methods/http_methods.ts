@@ -1,36 +1,13 @@
-import {
-  BetterRequestInit,
-  Client,
-  ClientPlugin,
-  ResponsePromise,
-} from "../../core.ts";
+import { BetterRequestInit, Client, ResponsePromise } from "../../core.ts";
 
-export type HTTPMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE";
-
-const HTTP_METHODS: readonly HTTPMethod[] = [
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-] as const;
-
-type HTTPFetchMethod = <
-  T_RequestOptions,
-  T_Resolvers,
->(
-  this: Client<unknown, T_RequestOptions, T_Resolvers>,
-  resource: URL | string,
-  options?: Omit<BetterRequestInit<T_RequestOptions>, "method">,
+type HTTPFetchMethod = <T_RequestOptions, T_Resolvers>(
+	this: Client<unknown, T_RequestOptions, T_Resolvers>,
+	resource: URL | string,
+	options?: Omit<BetterRequestInit<T_RequestOptions>, "method">,
 ) => ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 
-export type HTTPMethods = {
-  [_ in Lowercase<HTTPMethod>]: HTTPFetchMethod;
+export type HTTPMethods<HTTPMethod extends string> = {
+	[_ in Lowercase<HTTPMethod>]: HTTPFetchMethod;
 };
 
 /**
@@ -42,7 +19,7 @@ export type HTTPMethods = {
  * ```ts
  * import { clientCore, httpMethods } from "yumi-fetch";
  *
- * const client = clientCore.withPlugin(httpMethods);
+ * const client = clientCore.withProperties(httpMethods());
  *
  * // without this plugin
  * client.fetch("/todos", { method: "POST" })
@@ -50,22 +27,32 @@ export type HTTPMethods = {
  * client.post("/todos")
  * ```
  */
-export const httpMethods: ClientPlugin<HTTPMethods> = (client) => {
-  const methods = {} as HTTPMethods;
 
-  for (const method of HTTP_METHODS) {
-    methods[method.toLowerCase() as Lowercase<HTTPMethod>] = function <
-      T_RequestOptions,
-      T_Resolvers,
-    >(
-      this: Client<unknown, T_RequestOptions, T_Resolvers>,
-      resource: URL | string,
-      options = {},
-    ) {
-      (options as RequestInit).method = method;
-      return this.fetch(resource, options);
-    };
-  }
+export type DefaultMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+export const httpMethods = <const T extends string = DefaultMethods>(
+	methodNames: readonly T[] = [
+		"GET" as T,
+		"POST" as T,
+		"PUT" as T,
+		"PATCH" as T,
+		"DELETE" as T,
+	],
+) => {
+	const methods = {} as HTTPMethods<T>;
 
-  return client.withProperties(methods);
+	for (const method of methodNames) {
+		methods[method.toLowerCase() as Lowercase<T>] = function <
+			T_RequestOptions,
+			T_Resolvers,
+		>(
+			this: Client<unknown, T_RequestOptions, T_Resolvers>,
+			resource: URL | string,
+			options = {},
+		) {
+			(options as RequestInit).method = method;
+			return this.fetch(resource, options);
+		};
+	}
+
+	return methods;
 };

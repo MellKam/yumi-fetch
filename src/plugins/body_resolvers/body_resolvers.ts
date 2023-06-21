@@ -1,22 +1,20 @@
-import { ClientPlugin, ResponsePromise } from "../../core.ts";
-
-const BODY_RESOLVERS = {
-  json: "application/json",
-  text: "text/*",
-  arrayBuffer: "*/*",
-  blob: "*/*",
-  formData: "multipart/form-data",
-} as const;
-
-type BodyResolver = keyof typeof BODY_RESOLVERS;
+import { ResponsePromise } from "../../core.ts";
 
 export type BodyResolvers<JSONType = unknown> = {
-  json<T extends JSONType = JSONType>(): Promise<T>;
-  text(): Promise<string>;
-  arrayBuffer(): Promise<ArrayBuffer>;
-  blob(): Promise<Blob>;
-  formData(): Promise<FormData>;
+	json<T extends JSONType = JSONType>(this: ResponsePromise): Promise<T>;
+	text(this: ResponsePromise): Promise<string>;
+	arrayBuffer(this: ResponsePromise): Promise<ArrayBuffer>;
+	blob(this: ResponsePromise): Promise<Blob>;
+	formData(this: ResponsePromise): Promise<FormData>;
 };
+
+const BODY_RESOLVERS = {
+	json: "application/json",
+	text: "text/*",
+	arrayBuffer: "*/*",
+	blob: "*/*",
+	formData: "multipart/form-data",
+} as Record<keyof BodyResolvers, string>;
 
 /**
  * **Default Yumi Plugin**
@@ -29,7 +27,7 @@ export type BodyResolvers<JSONType = unknown> = {
  * ```ts
  * import { clientCore, bodyResolvers } from "yumi-fetch";
  *
- * const client = clientCore.withPlugin(bodyResolvers());
+ * const client = clientCore.withResolvers(bodyResolvers());
  *
  * type User = { ... };
  * const user = await client
@@ -37,26 +35,20 @@ export type BodyResolvers<JSONType = unknown> = {
  *   .json<User>();
  * ```
  */
-export const bodyResolvers = <JSONType = unknown>(): ClientPlugin<
-  unknown,
-  unknown,
-  BodyResolvers<JSONType>
-> => {
-  return (client) => {
-    const bodyResolvers = {} as
-      & ResponsePromise<unknown, BodyResolvers<JSONType>>
-      & BodyResolvers<JSONType>;
+export const bodyResolvers = <JSONType = unknown>() => {
+	const resolvers = {} as BodyResolvers<JSONType>;
 
-    for (const resolver in BODY_RESOLVERS) {
-      bodyResolvers[resolver as BodyResolver] = async function () {
-        this._opts.headers.set(
-          "Accept",
-          BODY_RESOLVERS[resolver as BodyResolver],
-        );
-        return (await this)[resolver as BodyResolver]();
-      };
-    }
+	for (const resolver in BODY_RESOLVERS) {
+		resolvers[resolver as keyof BodyResolvers<JSONType>] = async function (
+			this: ResponsePromise,
+		) {
+			this._opts.headers.set(
+				"Accept",
+				BODY_RESOLVERS[resolver as keyof BodyResolvers],
+			);
+			return (await this)[resolver as keyof BodyResolvers]();
+		};
+	}
 
-    return client.withResolvers(bodyResolvers);
-  };
+	return resolvers;
 };
