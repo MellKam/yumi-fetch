@@ -23,6 +23,19 @@ jobs:
       - name: Lint check
         run: deno task lint:check
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Test
+        run: deno task test
+
   build:
     runs-on: ubuntu-latest
     steps:

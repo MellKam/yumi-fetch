@@ -1,6 +1,19 @@
 /**
  * @internal
- * Always returns a new `Headers` object. Does not mutate input arguments.
+ * Returns a new Headers object by merging the provided HeadersInit arguments.
+ * The input arguments are not modified.
+ *
+ * @example
+ * ```ts
+ * mergeHeaders(
+ *   { "Accept": "application/json" },
+ *   { "Content-Type": "application/json" }
+ * )
+ * // Headers {
+ * //  "Accept": "application/json"
+ * //  "Content-Type": "application/json"
+ * // }
+ * ```
  */
 export const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
   const result = new Headers(h1);
@@ -13,10 +26,11 @@ export const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
 
 /**
  * @internal
- * Always returns a new `URL` object. Does not mutate input arguments.
+ * Returns a new URL object by merging a provided URL object or pathname string with an optional base URL object or string.
+ * The input arguments are not modified.
  *
- * @param url A `URL` object (without a hash and query parameters) or a string pathname. If the `URL` object is passed, the base argument will be ignored.
- * @param base Optional `URL` object or string url (without a hash and query parameters)
+ * @param url A URL object or a string representing the pathname. If a URL object is passed, the base argument will be ignored.
+ * @param base Optional URL object or string representing the base URL.
  *
  * @example
  * ```ts
@@ -44,7 +58,7 @@ export const mergeURLs = (url: URL | string, base?: URL | string): URL => {
 export type IsExtends<A, B> = A extends B ? true : false;
 
 /**
- * Are all elements of the array `T` equal to an element of `U`
+ * Determines whether all elements of the boolean array `T` are equal to a boolean `U`.
  *
  * @example
  * ```ts
@@ -54,10 +68,13 @@ export type IsExtends<A, B> = A extends B ? true : false;
  * // false
  * ```
  */
-export type AllEquals<T extends boolean[], U extends boolean> = T extends []
+export type AllBooelanEquals<
+  T extends boolean[],
+  U extends boolean
+> = T extends []
   ? true
   : T extends [infer First extends boolean, ...infer Rest extends boolean[]]
   ? U extends First
-    ? AllEquals<Rest, U>
+    ? AllBooelanEquals<Rest, U>
     : false
   : never;

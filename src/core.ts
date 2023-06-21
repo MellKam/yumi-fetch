@@ -1,22 +1,30 @@
-import { mergeURLs, AllEquals, IsExtends, mergeHeaders } from "./utils.ts";
+import {
+  mergeURLs,
+  AllBooelanEquals,
+  IsExtends,
+  mergeHeaders,
+} from "./utils.ts";
 
 /**
  * Better-typed alternative to the `HeaderInit` type for initializing a new `Headers` object.
  */
-export type BetterHeaderInit =
+export type BetterHeadersInit =
   | Headers
   | Record<string, string>
   | [string, string][];
 
-export type BetterRequestInit<T_RequestOptions> = RequestInit & {
-  headers?: BetterHeaderInit;
+export type BetterRequestInit<T_RequestOptions = unknown> = RequestInit & {
+  headers?: BetterHeadersInit;
 } & Partial<T_RequestOptions>;
 
+/**
+ * Request options that will be passed to middlewares after the merging with global client options and headers.
+ */
 export type RequestOptions<T_RequestOptions> = RequestInit & {
   headers: Headers;
 } & Partial<T_RequestOptions>;
 
-export type FetchLike<T_RequestOptions> = (
+export type FetchLike<T_RequestOptions = unknown> = (
   url: URL,
   options: RequestOptions<T_RequestOptions>
 ) => Promise<Response>;
@@ -222,7 +230,7 @@ export interface Client<
   withBaseURL(baseURL: string | URL): this;
 
   _headers: Headers;
-  withHeaders(init: BetterHeaderInit): this;
+  withHeaders(init: BetterHeadersInit): this;
 
   _options: Omit<RequestInit, "headers">;
   withOptions(options: Omit<RequestInit, "headers">): this;
@@ -261,7 +269,7 @@ export interface Client<
       D_RequestOptions,
       D_Resolvers
     >
-  ): AllEquals<
+  ): AllBooelanEquals<
     [
       IsExtends<T_Self, D_Self>,
       IsExtends<T_RequestOptions, D_RequestOptions>,

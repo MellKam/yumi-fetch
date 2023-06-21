@@ -1,9 +1,17 @@
-import { mergeURLs, mergeHeaders } from "./utils.ts";
+import {
+  mergeURLs,
+  mergeHeaders,
+  AllBooelanEquals,
+  IsExtends,
+} from "./utils.ts";
 import {
   assert,
   assertThrows,
-  assertEquals,
 } from "https://deno.land/std@0.192.0/testing/asserts.ts";
+import type {
+  AssertTrue,
+  AssertFalse,
+} from "https://deno.land/x/conditional_type_checks@1.0.6/mod.ts";
 
 Deno.test("mergeURLs - url and base as string", () => {
   assert(
@@ -73,13 +81,38 @@ const headersEqual = (h1: HeadersInit, h2: HeadersInit) => {
 };
 
 Deno.test("mergeHeaders - merge two headers", () => {
-  const h1 = new Headers({ "Content-Type": "application/json" });
-  const h2 = new Headers({ Authorization: "Bearer token" });
-
   assert(
-    headersEqual(mergeHeaders(h1, h2), {
-      "Content-Type": "application/json",
-      Authorization: "Bearer token",
-    })
+    headersEqual(
+      mergeHeaders(
+        { "Content-Type": "application/json" },
+        { Authorization: "Bearer token" }
+      ),
+      {
+        "Content-Type": "application/json",
+        Authorization: "Bearer token",
+      }
+    )
   );
+
+  const headers = new Headers({ "Content-Type": "application/json" });
+  const mergedHeaders = mergeHeaders(headers);
+
+  assert(headersEqual(mergedHeaders, headers));
+  assert(mergedHeaders !== headers);
+});
+
+Deno.test("AllEquals", () => {
+  type _test =
+    | AssertTrue<AllBooelanEquals<[true, true, true], true>>
+    | AssertTrue<AllBooelanEquals<[false, false, false], false>>
+    | AssertFalse<AllBooelanEquals<[false, true, false], false>>
+    | AssertFalse<AllBooelanEquals<[false, false, false], true>>;
+});
+
+Deno.test("IsExtends", () => {
+  type _test =
+    | AssertTrue<IsExtends<true, true>>
+    | AssertFalse<IsExtends<false, true>>
+    | AssertTrue<IsExtends<{ a: number }, { a: number }>>
+    | AssertFalse<IsExtends<{ a: number }, { a: number; b: string }>>;
 });
