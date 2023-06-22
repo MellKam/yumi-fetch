@@ -30,21 +30,19 @@ export interface ResponsePromise<
 	_then(
 		onfulfilled?:
 			| ((value: Response) => Response | PromiseLike<Response>)
-			| undefined
 			| null,
 		onrejected?:
-			| ((reason: any) => Response | PromiseLike<Response>)
-			| undefined
+			| ((reason: unknown) => Response | PromiseLike<Response>)
 			| null,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 	_catch(
 		onrejected?:
-			| ((reason: any) => Response | PromiseLike<Response>)
+			| ((reason: unknown) => Response | PromiseLike<Response>)
 			| undefined
 			| null,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 	_finally(
-		onfinally?: (() => void) | undefined | null,
+		onfinally?: (() => void) | null,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 }
 
