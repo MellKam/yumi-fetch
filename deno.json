@@ -11,7 +11,7 @@
     "singleQuote": false,
     "semiColons": true,
     "indentWidth": 2,
-    "include": ["./src/", "./examples/", "./benchmarks/"]
+    "include": ["./src/"]
   },
   "lint": {
     "rules": {
