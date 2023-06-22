@@ -356,14 +356,16 @@ export interface Client<
  * The plain object that implements `Client` interface.
  * You don't need to instantiate it to use it, as you do with classes.
  *
- * The clientCore automatically handles HTTP errors for you. It checks each response using the "res.ok" field, and if it's not okay, it throws an error. This default error handling is helpful when writing middlewares because it provides a reliable way to handle errors.
+ * The clientCore automatically handles HTTP errors for you. It checks each response using the "res.ok" field, and if it's not okay, it throws an error.
+ * This default error handling is helpful when writing middlewares because it provides a reliable way to handle errors.
  *
  * #### Why plain object and not class ???
  * There were many attempts to write it in classes, but nothing succeeded. It was especially difficult to satisfy typescript. So it was decided to choose objects instead of classes.
  * In spite of this, in some places we still have to lie to the typescript about types.
  *
  * #### Concept of public and private fields
- * Basically, since we don't use classes, we have to manage our private fields ourselves. In our case, we treat fields starting with `_` (underscore) as private, and any others as public.
+ * Basically, since we don't use classes, we have to manage our private fields ourselves.
+ * In our case, we treat fields starting with `_` (underscore) as private, and any others as public.
  */
 export const clientCore: Client = {
 	_baseURL: undefined,
@@ -423,7 +425,10 @@ export const clientCore: Client = {
 	},
 	_linkedFetch: null,
 	_linkMiddlewares() {
-		return this._middlewares.reduceRight((next, mw) => mw(next), this._fetch);
+		return this._middlewares.reduceRight(
+			(next, mw) => mw(next),
+			this._fetch.bind(this),
+		);
 	},
 	_linkedFetchStale: false,
 	_errorCreator: HTTPError.create,
@@ -433,8 +438,8 @@ export const clientCore: Client = {
 			_errorCreator: errorCreator,
 		};
 	},
-	async _fetch(url, options) {
-		const res = await globalThis.fetch(url, options);
+	async _fetch(url, opts) {
+		const res = await globalThis.fetch(url, opts);
 		if (res.ok) return res;
 		throw await this._errorCreator(res);
 	},
@@ -452,7 +457,7 @@ export const clientCore: Client = {
 		}
 
 		return createResponsePromise(
-			this._linkedFetch || this._fetch,
+			this._linkedFetch || this._fetch.bind(this),
 			mergedURL,
 			mergedOptions,
 			this._resolvers,

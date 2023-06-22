@@ -1,0 +1,13 @@
+{
+  "name": "@example/solid",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vite": "4.3.9",
+    "vite-plugin-solid": "2.7.0",
+    "yumi-fetch": "workspace:*",
+    "solid-js": "1.7.6"
+  }
+}
