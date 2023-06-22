@@ -334,9 +334,7 @@ export interface Client<
 	 * } // end c
 	 * ```
 	 */
-	_linkMiddlewares(
-		middlewares: FetchMiddleware<T_RequestOptions>[],
-	): (fetch: FetchLike<T_RequestOptions>) => FetchLike<T_RequestOptions>;
+	_linkMiddlewares(): FetchLike<T_RequestOptions>;
 	/**
 	 * @internal
 	 * Linked fetch stale status. By default, it is set to "false". However, if middleware has been added, it changes to "true".
@@ -347,7 +345,7 @@ export interface Client<
 	/**
 	 * @internal
 	 */
-	_fetch(errorCreator: HTTPErrorCreator): FetchLike<T_RequestOptions>;
+	_fetch: FetchLike<T_RequestOptions>;
 	fetch(
 		resource: URL | string,
 		options?: RequestInit & Partial<T_RequestOptions>,
@@ -426,10 +424,11 @@ export const clientCore: Client = {
 		return this.withMiddlewares([middleware]);
 	},
 	_linkedFetch: null,
-	_linkMiddlewares(middlewares) {
-		return (fetch) => {
-			return middlewares.reduceRight((next, mw) => mw(next), fetch);
-		};
+	_linkMiddlewares() {
+		return this._middlewares.reduceRight(
+			(next, mw) => mw(next),
+			this._fetch.bind(this),
+		);
 	},
 	_linkedFetchStale: false,
 	_errorCreator: HTTPError.create,
@@ -439,14 +438,10 @@ export const clientCore: Client = {
 			_errorCreator: errorCreator,
 		};
 	},
-	_fetch() {
-		const fn: FetchLike = async (url, options) => {
-			const res = await globalThis.fetch(url, options);
-			if (res.ok) return res;
-			throw await this._errorCreator.call(this, res);
-		};
-
-		return fn.bind(this);
+	async _fetch(url, opts) {
+		const res = await globalThis.fetch(url, opts);
+		if (res.ok) return res;
+		throw await this._errorCreator(res);
 	},
 	fetch(resource, options = {}) {
 		const mergedURL = mergeURLs(resource, this._baseURL);
@@ -457,14 +452,12 @@ export const clientCore: Client = {
 		};
 
 		if (this._linkedFetchStale) {
-			this._linkedFetch = this._linkMiddlewares(this._middlewares)(
-				this._fetch(this._errorCreator),
-			);
+			this._linkedFetch = this._linkMiddlewares();
 			this._linkedFetchStale = false;
 		}
 
 		return createResponsePromise(
-			this._linkedFetch || this._fetch(this._errorCreator),
+			this._linkedFetch || this._fetch.bind(this),
 			mergedURL,
 			mergedOptions,
 			this._resolvers,
