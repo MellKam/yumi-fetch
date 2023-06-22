@@ -58,7 +58,7 @@ export const timeout = (
 			.withResolvers<TimeoutResolver>({
 				onTimeout(callback) {
 					return this._catch((err) => {
-						if (err.name === "TimeoutError") {
+						if (err instanceof TimeoutError) {
 							callback(this._url, this._opts, err);
 						}
 						throw err;
