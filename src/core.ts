@@ -334,7 +334,9 @@ export interface Client<
 	 * } // end c
 	 * ```
 	 */
-	_linkMiddlewares(): FetchLike<T_RequestOptions>;
+	_linkMiddlewares(
+		middlewares: FetchMiddleware<T_RequestOptions>[],
+	): (fetch: FetchLike<T_RequestOptions>) => FetchLike<T_RequestOptions>;
 	/**
 	 * @internal
 	 * Linked fetch stale status. By default, it is set to "false". However, if middleware has been added, it changes to "true".
@@ -345,7 +347,7 @@ export interface Client<
 	/**
 	 * @internal
 	 */
-	_fetch: FetchLike<T_RequestOptions>;
+	_fetch(errorCreator: HTTPErrorCreator): FetchLike<T_RequestOptions>;
 	fetch(
 		resource: URL | string,
 		options?: RequestInit & Partial<T_RequestOptions>,
@@ -356,14 +358,16 @@ export interface Client<
  * The plain object that implements `Client` interface.
  * You don't need to instantiate it to use it, as you do with classes.
  *
- * The clientCore automatically handles HTTP errors for you. It checks each response using the "res.ok" field, and if it's not okay, it throws an error. This default error handling is helpful when writing middlewares because it provides a reliable way to handle errors.
+ * The clientCore automatically handles HTTP errors for you. It checks each response using the "res.ok" field, and if it's not okay, it throws an error.
+ * This default error handling is helpful when writing middlewares because it provides a reliable way to handle errors.
  *
  * #### Why plain object and not class ???
  * There were many attempts to write it in classes, but nothing succeeded. It was especially difficult to satisfy typescript. So it was decided to choose objects instead of classes.
  * In spite of this, in some places we still have to lie to the typescript about types.
  *
  * #### Concept of public and private fields
- * Basically, since we don't use classes, we have to manage our private fields ourselves. In our case, we treat fields starting with `_` (underscore) as private, and any others as public.
+ * Basically, since we don't use classes, we have to manage our private fields ourselves.
+ * In our case, we treat fields starting with `_` (underscore) as private, and any others as public.
  */
 export const clientCore: Client = {
 	_baseURL: undefined,
@@ -422,8 +426,10 @@ export const clientCore: Client = {
 		return this.withMiddlewares([middleware]);
 	},
 	_linkedFetch: null,
-	_linkMiddlewares() {
-		return this._middlewares.reduceRight((next, mw) => mw(next), this._fetch);
+	_linkMiddlewares(middlewares) {
+		return (fetch) => {
+			return middlewares.reduceRight((next, mw) => mw(next), fetch);
+		};
 	},
 	_linkedFetchStale: false,
 	_errorCreator: HTTPError.create,
@@ -433,10 +439,14 @@ export const clientCore: Client = {
 			_errorCreator: errorCreator,
 		};
 	},
-	async _fetch(url, options) {
-		const res = await globalThis.fetch(url, options);
-		if (res.ok) return res;
-		throw await this._errorCreator(res);
+	_fetch() {
+		const fn: FetchLike = async (url, options) => {
+			const res = await globalThis.fetch(url, options);
+			if (res.ok) return res;
+			throw await this._errorCreator.call(this, res);
+		};
+
+		return fn.bind(this);
 	},
 	fetch(resource, options = {}) {
 		const mergedURL = mergeURLs(resource, this._baseURL);
@@ -447,12 +457,14 @@ export const clientCore: Client = {
 		};
 
 		if (this._linkedFetchStale) {
-			this._linkedFetch = this._linkMiddlewares();
+			this._linkedFetch = this._linkMiddlewares(this._middlewares)(
+				this._fetch(this._errorCreator),
+			);
 			this._linkedFetchStale = false;
 		}
 
 		return createResponsePromise(
-			this._linkedFetch || this._fetch,
+			this._linkedFetch || this._fetch(this._errorCreator),
 			mergedURL,
 			mergedOptions,
 			this._resolvers,

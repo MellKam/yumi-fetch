@@ -30,10 +30,12 @@ export class HTTPError extends Error implements IHTTPError {
 		public readonly response: Response,
 		public readonly text?: string,
 		public readonly json?: unknown,
+		options?: ErrorOptions,
 	) {
-		super(`${response.status} ${response.statusText}`);
-		this.name = "HTTPError";
+		const message = text || response.statusText || "Unknown error";
+		super(`${response.status} ${message}`, options);
 		this.status = response.status;
+		this.name = "HTTPError";
 	}
 
 	get url() {

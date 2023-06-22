@@ -74,21 +74,7 @@ import { IHTTPError, yumi } from "../src/mod.ts";
 Deno.bench("Yumi", async () => {
 	const client = yumi
 		.withBaseURL("https://jsonplaceholder.typicode.com/")
-		.withHeaders({ hello: "world" }).withResolvers({
-			catchHttpError(callback: (error: IHTTPError) => Response) {
-				return this._catch((err) => {
-					if (
-						typeof err === "object" && err !== null &&
-						"response" in err && err.response instanceof Response &&
-						"status" in err && typeof err.status === "number" &&
-						"url" in err && typeof err.url === "string"
-					) {
-						return callback(err);
-					}
-					throw err;
-				});
-			},
-		});
+		.withHeaders({ hello: "world" });
 
 	const post = await client
 		.post("/posts", {
