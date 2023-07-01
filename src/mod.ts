@@ -27,5 +27,14 @@ export const yumi = clientCore
 	.withPlugin(query())
 	.withPlugin(json()) as Yumi;
 
-export * from "./core.ts";
+export {
+	type Client,
+	clientCore,
+	type ClientPlugin,
+	type FetchLike,
+	type FetchMiddleware,
+	type HTTPErrorCreator,
+	type RequestOptions,
+	type ResponsePromise,
+} from "./core.ts";
 export * from "./http_error.ts";

@@ -20,7 +20,7 @@ fetchMock.mock("POST@/posts", async (req) => {
 		throw new Error(`invalid pathname ${new URL(req.url).pathname}`);
 	}
 	return new Response(
-		JSON.stringify({ body: "gdsfsd", id: 3, title: "gsdeffes", userId: 3 }),
+		JSON.stringify({ body: "gdsfsd", id: 3, title: "gsdeffes", userId: 3 })
 	);
 });
 
@@ -62,14 +62,14 @@ Deno.bench("Wretch", async () => {
 				body: "safasdd",
 				userId: 2,
 			},
-			"posts",
+			"posts"
 		)
 		.json<Post>();
 });
 
 // --------- Yumi ---------
 
-import { IHTTPError, yumi } from "../src/mod.ts";
+import { yumi } from "../src/mod.ts";
 
 Deno.bench("Yumi", async () => {
 	const client = yumi

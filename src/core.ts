@@ -4,7 +4,7 @@ import {
 	mergeHeaders,
 	mergeURLs,
 } from "./utils.ts";
-import { HTTPError, IHTTPError } from "./http_error.ts";
+import { HTTPError, YumiError } from "./http_error.ts";
 
 export type RequestOptions<T_RequestOptions = unknown> = RequestInit & {
 	headers: Headers;
@@ -31,9 +31,7 @@ export interface ResponsePromise<
 		onfulfilled?:
 			| ((value: Response) => Response | PromiseLike<Response>)
 			| null,
-		onrejected?:
-			| ((reason: unknown) => Response | PromiseLike<Response>)
-			| null,
+		onrejected?: ((reason: unknown) => Response | PromiseLike<Response>) | null,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 	_catch(
 		onrejected?:
@@ -138,8 +136,9 @@ export type ClientPlugin<
 	& M_Self;
 
 export type HTTPErrorCreator = (
+	req: Request,
 	res: Response,
-) => IHTTPError | Promise<IHTTPError>;
+) => HTTPError | Promise<HTTPError>;
 
 /**
  * Extensible HTTP client entity
@@ -201,13 +200,7 @@ export interface Client<
 				& T_Resolvers
 				& M_Resolvers
 			>,
-	):
-		& Client<
-			T_Self,
-			T_RequestOptions,
-			T_Resolvers & M_Resolvers
-		>
-		& T_Self;
+	): Client<T_Self, T_RequestOptions, T_Resolvers & M_Resolvers> & T_Self;
 
 	/**
 	 * @template M_Self Properties object that will modify the current client type, in particular `T_Self` generic
@@ -218,14 +211,7 @@ export interface Client<
 		self:
 			& M_Self
 			& ThisType<Client<T_Self, T_RequestOptions, T_Resolvers> & T_Self>,
-	):
-		& Client<
-			T_Self & M_Self,
-			T_RequestOptions,
-			T_Resolvers
-		>
-		& T_Self
-		& M_Self;
+	): Client<T_Self & M_Self, T_RequestOptions, T_Resolvers> & T_Self & M_Self;
 
 	withPlugin<
 		M_Self,
@@ -269,13 +255,7 @@ export interface Client<
 	 */
 	withMiddlewares<M_RequestOptions>(
 		middlewares: FetchMiddleware<T_RequestOptions & M_RequestOptions>[],
-	):
-		& Client<
-			T_Self,
-			T_RequestOptions & M_RequestOptions,
-			T_Resolvers
-		>
-		& T_Self;
+	): Client<T_Self, T_RequestOptions & M_RequestOptions, T_Resolvers> & T_Self;
 	/**
 	 * Shortcut for `withMiddlewares()` to insert only one item
 	 *
@@ -283,13 +263,7 @@ export interface Client<
 	 */
 	withMiddleware<M_RequestOptions>(
 		middleware: FetchMiddleware<T_RequestOptions & M_RequestOptions>,
-	):
-		& Client<
-			T_Self,
-			T_RequestOptions & M_RequestOptions,
-			T_Resolvers
-		>
-		& T_Self;
+	): Client<T_Self, T_RequestOptions & M_RequestOptions, T_Resolvers> & T_Self;
 	/**
 	 * @internal Cache for the fetch linked with middlewares
 	 */
@@ -431,7 +405,7 @@ export const clientCore: Client = {
 		);
 	},
 	_linkedFetchStale: false,
-	_errorCreator: HTTPError.create,
+	_errorCreator: YumiError.create,
 	withErrorCreator(errorCreator) {
 		return {
 			...this,
@@ -441,7 +415,7 @@ export const clientCore: Client = {
 	async _fetch(url, opts) {
 		const res = await globalThis.fetch(url, opts);
 		if (res.ok) return res;
-		throw await this._errorCreator(res);
+		throw await this._errorCreator(new Request(url, opts), res);
 	},
 	fetch(resource, options = {}) {
 		const mergedURL = mergeURLs(resource, this._baseURL);
