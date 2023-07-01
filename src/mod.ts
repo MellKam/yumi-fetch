@@ -5,9 +5,9 @@ import {
 	DefaultMethods,
 	HTTPMethods,
 	httpMethods,
-	json,
-	query,
+	jsonSerializer,
 	QueryParams,
+	querySerializer,
 } from "./plugins/mod.ts";
 
 export type Yumi =
@@ -24,8 +24,8 @@ export type YumiResolvers = BodyResolvers<unknown>;
 export const yumi = clientCore
 	.withProperties(httpMethods())
 	.withResolvers(bodyResolvers())
-	.withPlugin(query())
-	.withPlugin(json()) as Yumi;
+	.withPlugin(querySerializer())
+	.withPlugin(jsonSerializer()) as Yumi;
 
 export {
 	type Client,
