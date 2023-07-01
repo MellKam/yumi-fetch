@@ -1,5 +1,5 @@
 import { clientCore } from "../../core.ts";
-import { bodyResolvers } from "./body_resolvers.ts";
+import { httpMethods } from "./http_methods.ts";
 import * as fetchMock from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
 
 fetchMock.install();
@@ -9,7 +9,7 @@ fetchMock.mock("GET@/user/1", () => {
 	));
 });
 
-const client = clientCore.withResolvers(bodyResolvers());
+const client = clientCore.withProperties(httpMethods());
 
 type User = {
 	id: string;
@@ -17,8 +17,9 @@ type User = {
 	age: number;
 };
 
-const user = await client
-	.fetch("http://example.com/user/1")
-	.json<User>();
+const res = await client
+	.get("http://example.com/user/1");
+
+const user = (await res.json()) as User;
 
 console.log(user);

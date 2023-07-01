@@ -18,9 +18,9 @@ export type QueryParams = {
  *
  * @example
  * ```ts
- * import { clientCore, query } from "yumi-fetch";
+ * import { clientCore, querySerializer } from "yumi-fetch";
  *
- * const client = clientCore.withPlugin(query());
+ * const client = clientCore.withPlugin(querySerializer());
  *
  * await client.fetch("http://example.com/posts", {
  *   query: {
@@ -29,8 +29,10 @@ export type QueryParams = {
  *   },
  * });
  * ```
+ *
+ * _This plugin is included in the yumi client by default_
  */
-export const query =
+export const querySerializer =
 	<QueryType = QueryParams>(): ClientPlugin<unknown, { query: QueryType }> =>
 	(
 		client,

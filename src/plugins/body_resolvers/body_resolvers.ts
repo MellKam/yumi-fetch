@@ -8,18 +8,18 @@ export type BodyResolvers<JSONType = unknown> = {
 	formData(this: ResponsePromise): Promise<FormData>;
 };
 
-const BODY_RESOLVERS = {
+type BodyResolverName = keyof BodyResolvers;
+
+const BODY_RESOLVERS: Record<BodyResolverName, string> = {
 	json: "application/json",
 	text: "text/*",
 	arrayBuffer: "*/*",
 	blob: "*/*",
 	formData: "multipart/form-data",
-} as Record<keyof BodyResolvers, string>;
+};
 
 /**
- * **Default Yumi Plugin**
- *
- * Clinet plugin that provides default body resolvers (`json`, `text`, `arrayBuffer`, `blob`, `formData`) to the client instance.
+ * Response resolvers that operate on default body deserialize methods (`json`, `text`, `arrayBuffer`, `blob`, `formData`).
  *
  * @template JSONType The base type for JSON values that the `.json()` method will return by default and extend the passed types. Default: `unknown`
  *
@@ -34,19 +34,21 @@ const BODY_RESOLVERS = {
  *   .fetch("http://example.com/user/1")
  *   .json<User>();
  * ```
+ *
+ * _These resolvers are included in the yumi client by default_
  */
 export const bodyResolvers = <JSONType = unknown>() => {
 	const resolvers = {} as BodyResolvers<JSONType>;
 
-	for (const resolver in BODY_RESOLVERS) {
-		resolvers[resolver as keyof BodyResolvers<JSONType>] = async function (
+	for (const resolverName in BODY_RESOLVERS) {
+		resolvers[resolverName as BodyResolverName] = async function (
 			this: ResponsePromise,
 		) {
 			this._opts.headers.set(
 				"Accept",
-				BODY_RESOLVERS[resolver as keyof BodyResolvers],
+				BODY_RESOLVERS[resolverName as BodyResolverName],
 			);
-			return (await this)[resolver as keyof BodyResolvers]();
+			return (await this)[resolverName as BodyResolverName]();
 		};
 	}
 

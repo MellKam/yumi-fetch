@@ -10,10 +10,10 @@ export type HTTPMethods<HTTPMethod extends string> = {
 	[_ in Lowercase<HTTPMethod>]: HTTPFetchMethod;
 };
 
+export type DefaultMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
 /**
- * **Default Yumi Plugin**
- *
- * Clinet plugin providing shorthand for fetch calls with certain http methods.
+ * This function creates shorthand methods for making fetch calls with specific HTTP methods.
  *
  * @example
  * ```ts
@@ -21,14 +21,27 @@ export type HTTPMethods<HTTPMethod extends string> = {
  *
  * const client = clientCore.withProperties(httpMethods());
  *
- * // without this plugin
+ * // BEFORE 😕
  * client.fetch("/todos", { method: "POST" })
- * // with this plugin
+ * // AFTER 😃
  * client.post("/todos")
  * ```
+ *
+ * By default it provides limited set of http methods `GET`, `POST`, `PUT`, `PATCH`, `DELETE` but you can also provide your own set as the array of strings.
+ *
+ * @example
+ * ```ts
+ * const client = clientCore.withProperties(
+ * 	 httpMethods(['GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'TRACE'])
+ * )
+ *
+ * client.options("/api/user")
+ * client.head("/api/user")
+ * client.trace("/api/user")
+ * ```
+ *
+ * _This methods are included in the yumi client by default_
  */
-
-export type DefaultMethods = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 export const httpMethods = <const T extends string = DefaultMethods>(
 	methodNames: readonly T[] = [
 		"GET" as T,

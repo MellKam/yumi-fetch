@@ -1,5 +1,5 @@
 import { clientCore } from "../../mod.ts";
-import { jsonSerializer } from "./json.ts";
+import { querySerializer } from "./query.ts";
 import * as fetchMock from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
 
 fetchMock.install();
@@ -9,12 +9,12 @@ fetchMock.mock("POST@/user", () => {
 	));
 });
 
-const client = clientCore.withPlugin(jsonSerializer());
+const client = clientCore.withPlugin(querySerializer());
 
 await client.fetch("http://example.com/user", {
 	method: "POST",
-	json: {
-		name: "Alex",
-		age: 20,
+	query: {
+		limit: 10,
+		offset: 2,
 	},
 });

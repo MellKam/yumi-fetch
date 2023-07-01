@@ -13,8 +13,6 @@ export interface JSONObject {
 }
 
 /**
- * **Default Yumi Plugin**
- *
  * Client plugin that adds a JSON serializer to your request options and handles JSON serialization for you.
  * It also sets the `Content-Type` header to `application/json` by default, so you don't need to.
  *
@@ -22,9 +20,9 @@ export interface JSONObject {
  *
  * @example
  * ```ts
- * import { clientCore, json } from "yumi-fetch";
+ * import { clientCore, jsonSerializer } from "yumi-fetch";
  *
- * const client = clientCore.withPlugin(json());
+ * const client = clientCore.withPlugin(jsonSerializer());
  *
  * await client.fetch("http://example.com/users", {
  *   method: "POST",
@@ -34,8 +32,10 @@ export interface JSONObject {
  *   },
  * });
  * ```
+ *
+ * _This plugin is included in the yumi client by default_
  */
-export const json = <JSONType = unknown>(): ClientPlugin<
+export const jsonSerializer = <JSONType = unknown>(): ClientPlugin<
 	unknown,
 	{ json: JSONType }
 > => {
