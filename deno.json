@@ -1,23 +1,26 @@
 {
-  "tasks": {
-    "build": "deno run -A npm:vite build && deno run -A npm:typescript/tsc",
-    "benchmark": "deno bench -A ./benchmarks/basic.ts",
-    "test": "deno test -A",
-    "lint:check": "deno lint && deno fmt --check"
-  },
-  "fmt": {
-    "useTabs": true,
-    "lineWidth": 80,
-    "singleQuote": false,
-    "semiColons": true,
-    "indentWidth": 2,
-    "include": ["./src/"]
-  },
-  "lint": {
-    "rules": {
-      "exclude": ["no-explicit-any"]
-    },
-    "include": ["./src/"]
-  },
-  "nodeModulesDir": true
+	"tasks": {
+		"build": "deno run -A npm:vite build && deno run -A npm:typescript/tsc",
+		"bench": "deno bench -A ./benchmarks/basic.ts",
+		"test": "deno test -A ./src",
+		"test:cov": "deno test ./src --coverage=coverage",
+		"cov:log": "deno coverage ./coverage",
+		"cov:gen": "deno coverage ./coverage --lcov > ./coverage/coverage.lcov",
+		"lint:check": "deno lint && deno fmt --check"
+	},
+	"fmt": {
+		"useTabs": true,
+		"lineWidth": 80,
+		"singleQuote": false,
+		"semiColons": true,
+		"indentWidth": 2,
+		"include": ["./src/"]
+	},
+	"lint": {
+		"rules": {
+			"exclude": ["no-explicit-any"]
+		},
+		"include": ["./src/"]
+	},
+	"nodeModulesDir": true
 }

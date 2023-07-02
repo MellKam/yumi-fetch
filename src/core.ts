@@ -6,9 +6,10 @@ import {
 } from "./utils.ts";
 import { HTTPError, YumiError } from "./http_error.ts";
 
-export type RequestOptions<T_RequestOptions = unknown> = RequestInit & {
-	headers: Headers;
-} & Partial<T_RequestOptions>;
+export type RequestOptions<T_RequestOptions = unknown> =
+	& RequestInit
+	& { headers: Headers }
+	& Partial<T_RequestOptions>;
 
 export type FetchLike<T_RequestOptions = unknown> = (
 	url: URL,
@@ -31,11 +32,11 @@ export interface ResponsePromise<
 		onfulfilled?:
 			| ((value: Response) => Response | PromiseLike<Response>)
 			| null,
-		onrejected?: ((reason: unknown) => Response | PromiseLike<Response>) | null,
+		onrejected?: ((reason: any) => Response | PromiseLike<Response>) | null,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
 	_catch(
 		onrejected?:
-			| ((reason: unknown) => Response | PromiseLike<Response>)
+			| ((reason: any) => Response | PromiseLike<Response>)
 			| undefined
 			| null,
 	): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers;
@@ -51,8 +52,8 @@ export const createResponsePromise = <
 	fetch: FetchLike<T_RequestOptions>,
 	url: URL,
 	opts: RequestOptions<T_RequestOptions>,
-	resolvers: T_Resolvers,
-) => {
+	resolvers?: T_Resolvers,
+): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers => {
 	return {
 		...resolvers,
 		_fetch: fetch,

@@ -27,7 +27,7 @@ Deno.test("YumiError - without body", async () => {
 	assertEquals(error.response, res);
 });
 
-Deno.test("isHTTPError with HTTPError", async () => {
+Deno.test("isHTTPError", async () => {
 	const req = new Request("http://example.com");
 	const res = new Response(null, { status: 400 });
 

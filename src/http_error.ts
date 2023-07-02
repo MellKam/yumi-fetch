@@ -3,7 +3,7 @@ export interface HTTPError<T_Body = unknown> extends Error {
 	readonly response: Response;
 	readonly status: number;
 	readonly url: string;
-	readonly body?: T_Body;
+	readonly body: T_Body;
 }
 
 const isError = (err: unknown): err is Error => {
