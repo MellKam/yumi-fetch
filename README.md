@@ -18,6 +18,9 @@
   <a href="https://bundlejs.com/?q=yumi-fetch&treeshake=%5B%7B+yumi+%7D%5D">
     <img src="https://deno.bundlejs.com/?q=yumi-fetch&treeshake=[{+yumi+}]&badge=minified&color=FF3797" alt="Size of yumi client">
   </a>
+  <a href="https://codecov.io/gh/MellKam/yumi-fetch">
+    <img src="https://img.shields.io/codecov/c/gh/MellKam/yumi-fetch?color=FF3797&label=coverage" alt="Code test coverage" />
+  </a>
 </p>
 
 Package that enhances your `fetch` experience and aims to be as similar to Fetch
