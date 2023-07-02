@@ -73,7 +73,8 @@ export class YumiError<T_Body = unknown> extends Error implements HTTPError {
 		}
 
 		try {
-			body = await response.json();
+			body = (await response.text()) as T_Body;
+			body = JSON.parse(body as string);
 		} catch (_) {
 			/* Ignore errors */
 		}

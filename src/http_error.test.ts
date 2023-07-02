@@ -22,9 +22,27 @@ Deno.test("YumiError - without body", async () => {
 	const error = await YumiError.create(req, res);
 
 	assert(typeof error.body === "undefined");
+	assert(error.message === "400 Unknown error");
 	assert(error.status === 400);
 	assertEquals(error.request, req);
 	assertEquals(error.response, res);
+});
+
+Deno.test("YumiError - with body as string", async () => {
+	const req = new Request("http://example.com");
+	const res = new Response("Bad request", { status: 400 });
+	const error = await YumiError.create(req, res);
+
+	console.log(error.message);
+	assert(error.message === "400 Bad request");
+});
+
+Deno.test("YumiError - with string body", async () => {
+	const req = new Request("http://example.com");
+	const res = new Response(null, { status: 400, statusText: "Bad request" });
+	const error = await YumiError.create(req, res);
+
+	assert(error.message === "400 Bad request");
 });
 
 Deno.test("isHTTPError", async () => {

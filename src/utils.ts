@@ -41,9 +41,7 @@ export const mergeHeaders = (h1: HeadersInit, h2?: HeadersInit) => {
  * ```
  */
 export const mergeURLs = (url: URL | string, base?: URL | string): URL => {
-	if (base && url) {
-		if (typeof url === "object") return new URL(url);
-
+	if (base && typeof url === "string") {
 		const result = new URL(base);
 		result.pathname += (result.pathname.endsWith("/") ? "" : "/") +
 			(url.startsWith("/") ? url.slice(1) : url);
@@ -51,7 +49,7 @@ export const mergeURLs = (url: URL | string, base?: URL | string): URL => {
 		return result;
 	}
 
-	return base ? new URL(base) : new URL(url);
+	return new URL(url);
 };
 
 export type IsExtends<A, B> = A extends B ? true : false;
