@@ -4,7 +4,7 @@ import {
 	mergeHeaders,
 	mergeURLs,
 } from "./utils.ts";
-import { HTTPError, YumiError } from "./http_error.ts";
+import { createYumiError, HTTPError } from "./http_error.ts";
 
 export type RequestOptions<T_RequestOptions = unknown> =
 	& RequestInit
@@ -406,7 +406,7 @@ export const clientCore: Client = {
 		);
 	},
 	_linkedFetchStale: false,
-	_errorCreator: YumiError.create,
+	_errorCreator: createYumiError,
 	withErrorCreator(errorCreator) {
 		return {
 			...this,

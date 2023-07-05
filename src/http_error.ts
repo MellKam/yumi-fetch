@@ -32,53 +32,61 @@ export const isHTTPError = (err: unknown): err is HTTPError => {
 };
 
 export class YumiError<T_Body = unknown> extends Error implements HTTPError {
+	public readonly name = "YumiError";
 	public readonly status: number;
 	public readonly request: Request;
 	public readonly response: Response;
 	public readonly body: T_Body;
 
 	constructor(
+		message: string,
 		request: Request,
 		response: Response,
 		body: T_Body,
 		options?: ErrorOptions,
 	) {
-		const message = typeof body === "string"
-			? body
-			: body
-			? JSON.stringify(body)
-			: response.statusText || "Unknown error";
-		super(response.status + " " + message, options);
-
+		super(message, options);
 		this.request = request;
 		this.response = response;
 		this.body = body;
 		this.status = response.status;
-		this.name = "YumiError";
 	}
 
 	get url() {
 		return this.response.url;
 	}
-
-	static async create<T_Body = unknown>(
-		request: Request,
-		response: Response,
-		options?: ErrorOptions,
-	) {
-		let body: T_Body = undefined as T_Body;
-
-		if (!response.body) {
-			return new YumiError<T_Body>(request, response, body, options);
-		}
-
-		try {
-			body = (await response.text()) as T_Body;
-			body = JSON.parse(body as string);
-		} catch (_) {
-			/* Ignore errors */
-		}
-
-		return new YumiError<T_Body>(request, response, body, options);
-	}
 }
+
+export const createYumiError = async <T_Body = unknown>(
+	request: Request,
+	response: Response,
+	options?: ErrorOptions,
+) => {
+	const fallbackMessage = response.statusText || "Unknown error";
+	let body: T_Body = undefined as T_Body;
+
+	if (!response.body || response.type === "opaque") {
+		return new YumiError<T_Body>(
+			fallbackMessage,
+			request,
+			response,
+			body,
+			options,
+		);
+	}
+
+	try {
+		body = (await response.text()) as T_Body;
+		body = JSON.parse(body as string);
+	} catch (_) {
+		/* Ignore errors */
+	}
+
+	const message = typeof body === "string"
+		? body
+		: body
+		? JSON.stringify(body)
+		: fallbackMessage;
+
+	return new YumiError<T_Body>(message, request, response, body, options);
+};
