@@ -4,7 +4,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        index: "./src/mod.ts",
+        mod: "./src/mod.ts",
         plugins: "./src/plugins/mod.ts",
       },
       formats: ["cjs", "es"],

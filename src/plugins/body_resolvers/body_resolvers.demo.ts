@@ -1,6 +1,6 @@
 import { clientCore } from "../../core.ts";
 import { bodyResolvers } from "./body_resolvers.ts";
-import * as fetchMock from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
+import * as fetchMock from "mock_fetch";
 
 fetchMock.install();
 fetchMock.mock("GET@/user/1", () => {

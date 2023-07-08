@@ -6,6 +6,7 @@
 		"examples/deno-basic",
 		"examples/deno-retry"
 	],
+	"deno.importMap": "./import_map.json",
 	"deno.unstable": true,
 	"editor.defaultFormatter": "denoland.vscode-deno",
 	"[typescript]": {

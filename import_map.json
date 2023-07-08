@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "std/": "https://deno.land/std@0.193.0/",
+    "conditional_type_checks": "https://deno.land/x/conditional_type_checks@1.0.6/mod.ts",
+    "mock_fetch": "https://deno.land/x/mock_fetch@0.3.0/mod.ts"
+  }
+}

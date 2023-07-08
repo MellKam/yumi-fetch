@@ -4,14 +4,8 @@ import {
 	mergeHeaders,
 	mergeURLs,
 } from "./utils.ts";
-import {
-	assert,
-	assertThrows,
-} from "https://deno.land/std@0.192.0/testing/asserts.ts";
-import type {
-	AssertFalse,
-	AssertTrue,
-} from "https://deno.land/x/conditional_type_checks@1.0.6/mod.ts";
+import { assert, assertThrows } from "std/testing/asserts.ts";
+import type { AssertFalse, AssertTrue } from "conditional_type_checks";
 
 Deno.test("mergeURLs - url and base as string", () => {
 	assert(

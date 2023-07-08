@@ -1,13 +1,6 @@
 import { createResponsePromise, FetchLike, RequestOptions } from "./core.ts";
-import {
-	assertSpyCall,
-	assertSpyCalls,
-	spy,
-} from "https://deno.land/std@0.192.0/testing/mock.ts";
-import {
-	assert,
-	assertInstanceOf,
-} from "https://deno.land/std@0.192.0/testing/asserts.ts";
+import { assertSpyCall, assertSpyCalls, spy } from "std/testing/mock.ts";
+import { assert, assertInstanceOf } from "std/testing/asserts.ts";
 
 Deno.test("createResponsePromise", async () => {
 	const response = new Response("test");

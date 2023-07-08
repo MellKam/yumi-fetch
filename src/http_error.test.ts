@@ -1,8 +1,5 @@
 import { createYumiError, isHTTPError } from "./http_error.ts";
-import {
-	assert,
-	assertEquals,
-} from "https://deno.land/std@0.192.0/testing/asserts.ts";
+import { assert, assertEquals } from "std/testing/asserts.ts";
 
 Deno.test("YumiError", async () => {
 	const req = new Request("http://example.com");

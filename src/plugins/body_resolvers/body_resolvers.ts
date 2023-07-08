@@ -1,7 +1,7 @@
 import { ResponsePromise } from "../../core.ts";
 
-export type BodyResolvers<JSONType = unknown> = {
-	json<T extends JSONType = JSONType>(this: ResponsePromise): Promise<T>;
+export type BodyResolvers<T_JSONType = unknown> = {
+	json<T extends T_JSONType = T_JSONType>(this: ResponsePromise): Promise<T>;
 	text(this: ResponsePromise): Promise<string>;
 	arrayBuffer(this: ResponsePromise): Promise<ArrayBuffer>;
 	blob(this: ResponsePromise): Promise<Blob>;
@@ -10,7 +10,7 @@ export type BodyResolvers<JSONType = unknown> = {
 
 type BodyResolverName = keyof BodyResolvers;
 
-const BODY_RESOLVERS: Record<BodyResolverName, string> = {
+const resolversAcceptedContentTypes: Record<BodyResolverName, string> = {
 	json: "application/json",
 	text: "text/*",
 	arrayBuffer: "*/*",
@@ -37,16 +37,16 @@ const BODY_RESOLVERS: Record<BodyResolverName, string> = {
  *
  * _These resolvers are included in the yumi client by default_
  */
-export const bodyResolvers = <JSONType = unknown>() => {
-	const resolvers = {} as BodyResolvers<JSONType>;
+export const bodyResolvers = <T_JSONType = unknown>() => {
+	const resolvers = {} as BodyResolvers<T_JSONType>;
 
-	for (const resolverName in BODY_RESOLVERS) {
+	for (const resolverName in resolversAcceptedContentTypes) {
 		resolvers[resolverName as BodyResolverName] = async function (
 			this: ResponsePromise,
 		) {
 			this._opts.headers.set(
 				"Accept",
-				BODY_RESOLVERS[resolverName as BodyResolverName],
+				resolversAcceptedContentTypes[resolverName as BodyResolverName],
 			);
 			return (await this)[resolverName as BodyResolverName]();
 		};

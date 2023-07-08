@@ -14,13 +14,20 @@
 		"singleQuote": false,
 		"semiColons": true,
 		"indentWidth": 2,
-		"include": ["./src/"]
+		"include": [
+			"./src/"
+		]
 	},
 	"lint": {
 		"rules": {
-			"exclude": ["no-explicit-any"]
+			"exclude": [
+				"no-explicit-any"
+			]
 		},
-		"include": ["./src/"]
+		"include": [
+			"./src/"
+		]
 	},
-	"nodeModulesDir": true
+	"nodeModulesDir": true,
+	"importMap": "./import_map.json"
 }
