@@ -35,6 +35,14 @@ control and incredible flexibility.
 npm i yumi-fetch
 ```
 
+## [unpkg.com](https://www.unpkg.com/)
+
+```html
+<script type="module">
+import { yumi } from "https://unpkg.com/yumi-fetch/dist/mod.js";
+</script>
+```
+
 ## [deno.land](https://deno.land/x/yumi)
 
 ```ts

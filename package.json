@@ -20,9 +20,9 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
+      "default": "./dist/mod.js",
+      "import": "./dist/mod.js",
+      "require": "./dist/mod.cjs",
       "types": "./dist/mod.d.ts"
     },
     "./plugins": {

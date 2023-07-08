@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>yumi-fetch</title>
+	</head>
+	<body>
+		<h1>Todos</h1>
+		<ul></ul>
+
+		<script type="module">
+			import { yumi } from "https://unpkg.com/yumi-fetch/dist/mod.js";
+
+			const { todos } = await yumi
+				.get("https://dummyjson.com/todos", { query: { limit: 5 } })
+				.json();
+
+			const list = document.querySelector("ul");
+
+			for (const todo of todos) {
+				const listItem = document.createElement("li");
+				listItem.textContent = todo.todo;
+				list.appendChild(listItem);
+			}
+		</script>
+	</body>
+</html>
