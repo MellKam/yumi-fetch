@@ -1,4 +1,5 @@
 import { ClientPlugin } from "../../core.ts";
+import { APP_JSON, CONTENT_TYPE_HEADER } from "../../utils.ts";
 
 export type JSONValue =
 	| null
@@ -42,7 +43,7 @@ export const jsonSerializer = <JSONType = unknown>(): ClientPlugin<
 	return (client) =>
 		client.withMiddleware((next) => (url, opts) => {
 			if (!opts.body && opts.json) {
-				opts.headers.set("Content-Type", "application/json");
+				opts.headers.set(CONTENT_TYPE_HEADER, APP_JSON);
 				opts.body = JSON.stringify(opts.json);
 			}
 			return next(url, opts);

@@ -1,3 +1,5 @@
+import { APP_JSON, CONTENT_TYPE_HEADER } from "./utils.ts";
+
 export interface HTTPError<T_Body = unknown> extends Error {
 	readonly request: Request;
 	readonly response: Response;
@@ -62,12 +64,12 @@ export const createYumiError = async <T_Body = unknown>(
 	response: Response,
 	options?: ErrorOptions,
 ) => {
-	const fallbackMessage = response.statusText || "Unknown error";
-	let body: T_Body = undefined as T_Body;
+	let message = response.statusText || "Unknown error";
+	let body: T_Body = null as T_Body;
 
 	if (!response.body || response.type === "opaque") {
 		return new YumiError<T_Body>(
-			fallbackMessage,
+			message,
 			request,
 			response,
 			body,
@@ -76,17 +78,21 @@ export const createYumiError = async <T_Body = unknown>(
 	}
 
 	try {
-		body = (await response.text()) as T_Body;
-		body = JSON.parse(body as string);
+		body = await response.text() as T_Body;
+		message = body as string;
+
+		const contentType = response.headers.get(CONTENT_TYPE_HEADER);
+
+		if (
+			contentType &&
+			(contentType === APP_JSON ||
+				contentType.split(";")[0] === APP_JSON)
+		) {
+			body = JSON.parse(body as string) as T_Body;
+		}
 	} catch (_) {
 		/* Ignore errors */
 	}
-
-	const message = typeof body === "string"
-		? body
-		: body
-		? JSON.stringify(body)
-		: fallbackMessage;
 
 	return new YumiError<T_Body>(message, request, response, body, options);
 };

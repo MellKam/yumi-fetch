@@ -1,4 +1,5 @@
 import { ResponsePromise } from "../../core.ts";
+import { ACCEPT_HEADER, APP_JSON } from "../../utils.ts";
 
 export type BodyResolvers<T_JSONType = unknown> = {
 	json<T extends T_JSONType = T_JSONType>(this: ResponsePromise): Promise<T>;
@@ -11,7 +12,7 @@ export type BodyResolvers<T_JSONType = unknown> = {
 type BodyResolverName = keyof BodyResolvers;
 
 const resolversAcceptedContentTypes: Record<BodyResolverName, string> = {
-	json: "application/json",
+	json: APP_JSON,
 	text: "text/*",
 	arrayBuffer: "*/*",
 	blob: "*/*",
@@ -45,7 +46,7 @@ export const bodyResolvers = <T_JSONType = unknown>() => {
 			this: ResponsePromise,
 		) {
 			this._opts.headers.set(
-				"Accept",
+				ACCEPT_HEADER,
 				resolversAcceptedContentTypes[resolverName as BodyResolverName],
 			);
 			return (await this)[resolverName as BodyResolverName]();

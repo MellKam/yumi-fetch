@@ -1,3 +1,7 @@
+export const APP_JSON = "application/json";
+export const ACCEPT_HEADER = "Accept";
+export const CONTENT_TYPE_HEADER = "Content-Type";
+
 /**
  * @internal
  * Returns a new Headers object by merging the provided HeadersInit arguments.
