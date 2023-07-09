@@ -50,7 +50,7 @@ Deno.bench("fetch", { baseline: true }, async () => {
 // --------- Wretch ---------
 import Wretch from "npm:wretch";
 
-Deno.bench("Wretch", async () => {
+Deno.bench("wretch", async () => {
 	const wretch = Wretch("https://jsonplaceholder.typicode.com/", {
 		headers: { hello: "world" },
 	});
@@ -71,7 +71,7 @@ Deno.bench("Wretch", async () => {
 
 import { yumi } from "../src/mod.ts";
 
-Deno.bench("Yumi", async () => {
+Deno.bench("yumi-fetch", async () => {
 	const client = yumi
 		.withBaseURL("https://jsonplaceholder.typicode.com/")
 		.withHeaders({ hello: "world" });
@@ -116,7 +116,7 @@ Deno.bench("ky", async () => {
 
 import { create } from "npm:ya-fetch";
 
-Deno.bench("Ya", async () => {
+Deno.bench("ya-fetch", async () => {
 	const ya = create({
 		base: "https://jsonplaceholder.typicode.com/",
 		headers: { hello: "world" },
@@ -131,4 +131,27 @@ Deno.bench("Ya", async () => {
 			},
 		})
 		.json<Post>();
+});
+
+// --------- ofetch ---------
+
+import { createFetch } from "npm:ofetch";
+
+Deno.bench("ofetch", async () => {
+	const apiFetch = createFetch({
+		fetch: fetch,
+		Headers: Headers,
+	}).create({
+		baseURL: "https://jsonplaceholder.typicode.com",
+		headers: { hello: "world" },
+	});
+
+	const post = await apiFetch<Post>("/posts", {
+		body: {
+			title: "foo",
+			body: "safasdd",
+			userId: 2,
+		},
+		method: "POST",
+	});
 });

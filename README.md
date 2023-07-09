@@ -35,6 +35,7 @@
   - [deno.land](#denoland)
 - [Getting started](#getting-started)
 - [Bundle size comparison](#bundle-size-comparison)
+- [Benchmark comparison](#benchmark-comparison)
 
 # Features
 
@@ -187,6 +188,31 @@ The beauty of this approach is that all these plug-ins seamlessly modify the cli
 | --- | --- | --- | --- |
 | yumi-fetch | fetch | <a href="https://bundlejs.com/?q=yumi-fetch&treeshake=%5B%7Byumi%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=yumi-fetch&treeshake=[{yumi}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=yumi-fetch&treeshake=%5B%7Byumi%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=yumi-fetch&treeshake=[{yumi}]&badge=" /></a> |
 | <a href="https://github.com/elbywan/wretch">wretch</a> | fetch | <a href="https://bundlejs.com/?q=wretch&treeshake=%5B%7Bdefault+as+wretch%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=wretch&treeshake=[{default+as+wretch}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=wretch&treeshake=%5B%7Bdefault+as+wretch%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=wretch&treeshake=[{default+as+wretch}]&badge=" /></a> |
+| <a href="https://github.com/unjs/ofetch">ofetch</a> | fetch | <a href="https://deno.bundlejs.com?q=ofetch&treeshake=[{ofetch}]"><img src="https://deno.bundlejs.com?q=ofetch&treeshake=[{ofetch}]&badge=minified" /></a> | <a href="https://deno.bundlejs.com?q=ofetch&treeshake=[{ofetch}]"><img src="https://deno.bundlejs.com?q=ofetch&treeshake=[{ofetch}]&badge" /></a> |
 | <a href="https://github.com/sindresorhus/ky">ky</a> | fetch | <a href="https://bundlejs.com/?q=ky&treeshake=%5B%7Bdefault+as+ky%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=ky&treeshake=[{default+as+ky}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=ky&treeshake=%5B%7Bdefault+as+ky%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=ky&treeshake=[{default+as+ky}]&badge=" /></a> |
 | <a href="https://github.com/axios/axios">axios</a> | XMLHttpRequest | <a href="https://bundlejs.com/?q=axios&treeshake=[{+default+as+axois+}" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com?q=axios&treeshake=[{+default+as+axois+}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=axios&treeshake=[{+default+as+axois+}" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com?q=axios&treeshake=[{+default+as+axois+}]&badge" /></a> |
 | <a href="https://github.com/sindresorhus/got">got</a> | XMLHttpRequest | <a href="https://bundlejs.com/?q=got&treeshake=%5B%7Bdefault+as+got%7D%5D" alt="Minified size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=got&treeshake=[{default+as+got}]&badge=minified" /></a> | <a href="https://bundlejs.com/?q=got&treeshake=%5B%7Bdefault+as+got%7D%5D" alt="Minified and gripped size badge from bundlejs.com"><img src="https://deno.bundlejs.com/?q=got&treeshake=[{default+as+got}]&badge=" /></a> |
+
+# Benchmark comparison
+
+```bash
+cpu: Apple M1
+runtime: deno 1.35.0 (aarch64-apple-darwin)
+
+benchmark       time (avg)             (min … max)       p75       p99      p995
+-------------------------------------------------- -----------------------------
+fetch           72.39 µs/iter  (60.75 µs … 714.62 µs)  72.46 µs 204.96 µs 307.29 µs
+wretch           77.1 µs/iter    (67.92 µs … 1.02 ms)  76.92 µs 109.83 µs 286.46 µs
+yumi-fetch      87.31 µs/iter    (75.04 µs … 1.05 ms)  87.08 µs 131.83 µs 277.79 µs
+ky             156.34 µs/iter   (121.21 µs … 2.28 ms)  151.5 µs 534.71 µs   1.22 ms
+ya-fetch        89.77 µs/iter    (76.38 µs … 1.75 ms)  88.79 µs 144.62 µs 317.83 µs
+ofetch          77.51 µs/iter  (68.33 µs … 977.96 µs)   76.5 µs 150.96 µs 197.71 µs
+
+summary
+  fetch
+   1.07x faster than wretch
+   1.07x faster than ofetch
+   1.21x faster than yumi-fetch
+   1.24x faster than ya-fetch
+   2.16x faster than ky
+```
