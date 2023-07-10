@@ -33,8 +33,9 @@ export const isHTTPError = (err: unknown): err is HTTPError => {
 	);
 };
 
-export class YumiError<T_Body = unknown> extends Error implements HTTPError {
-	public readonly name = "YumiError";
+export class FetchError<T_Body = unknown> extends Error implements HTTPError {
+	name = "FetchError";
+
 	public readonly status: number;
 	public readonly request: Request;
 	public readonly response: Response;
@@ -59,7 +60,7 @@ export class YumiError<T_Body = unknown> extends Error implements HTTPError {
 	}
 }
 
-export const createYumiError = async <T_Body = unknown>(
+export const createFetchError = async <T_Body = unknown>(
 	request: Request,
 	response: Response,
 	options?: ErrorOptions,
@@ -68,7 +69,7 @@ export const createYumiError = async <T_Body = unknown>(
 	let body: T_Body = null as T_Body;
 
 	if (!response.body || response.type === "opaque") {
-		return new YumiError<T_Body>(
+		return new FetchError<T_Body>(
 			message,
 			request,
 			response,
@@ -94,5 +95,5 @@ export const createYumiError = async <T_Body = unknown>(
 		/* Ignore errors */
 	}
 
-	return new YumiError<T_Body>(message, request, response, body, options);
+	return new FetchError<T_Body>(message, request, response, body, options);
 };
