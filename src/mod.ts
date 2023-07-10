@@ -10,12 +10,14 @@ import {
 	querySerializer,
 } from "./plugins/mod.ts";
 
-export type YumiSelf = HTTPMethods<DefaultMethods>;
-export type YumiRequestOptions = { query: QueryParams } & { json: unknown };
-export type YumiResolvers = BodyResolvers<unknown>;
-export type Yumi =
-	& Client<YumiSelf, YumiRequestOptions, YumiResolvers>
-	& YumiSelf;
+export type BaseClientSelf = HTTPMethods<DefaultMethods>;
+export type BaseClientRequestOptions = { query: QueryParams } & {
+	json: unknown;
+};
+export type BaseClientResolvers = BodyResolvers<unknown>;
+export type BaseClient =
+	& Client<BaseClientSelf, BaseClientRequestOptions, BaseClientResolvers>
+	& BaseClientSelf;
 
 /**
  * The default client, which we recommend, comes with several essential plugins that can greatly simplify your work.
@@ -25,7 +27,7 @@ export const yumi = clientCore
 	.withProperties(httpMethods())
 	.withResolvers(bodyResolvers())
 	.withPlugin(querySerializer())
-	.withPlugin(jsonSerializer()) as Yumi;
+	.withPlugin(jsonSerializer()) as BaseClient;
 
 export {
 	type Client,
