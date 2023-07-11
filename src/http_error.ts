@@ -65,7 +65,9 @@ export const createFetchError = async <T_Body = unknown>(
 	response: Response,
 	options?: ErrorOptions,
 ) => {
-	let message = response.statusText || "Unknown error";
+	const message = response.statusText
+		? `${response.status} ${response.statusText} (${request.url})`
+		: `${response.status} (${request.url})`;
 	let body: T_Body = null as T_Body;
 
 	if (!response.body || response.type === "opaque") {
@@ -80,8 +82,6 @@ export const createFetchError = async <T_Body = unknown>(
 
 	try {
 		body = await response.text() as T_Body;
-		message = body as string;
-
 		const contentType = response.headers.get(CONTENT_TYPE_HEADER);
 
 		if (
