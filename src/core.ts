@@ -6,14 +6,14 @@ import {
 } from "./utils.ts";
 import { createFetchError, HTTPError } from "./http_error.ts";
 
-export type RequestOptions<T_RequestOptions = unknown> =
+export type FetchLikeOptions<T_RequestOptions = unknown> =
 	& RequestInit
 	& { headers: Headers }
 	& Partial<T_RequestOptions>;
 
 export type FetchLike<T_RequestOptions = unknown> = (
 	url: URL,
-	options: RequestOptions<T_RequestOptions>,
+	options: FetchLikeOptions<T_RequestOptions>,
 ) => Promise<Response>;
 
 export type FetchMiddleware<T_RequestOptions = unknown> = (
@@ -25,7 +25,7 @@ export interface ResponsePromise<
 	T_Resolvers = unknown,
 > extends Promise<Response> {
 	_url: URL;
-	_opts: RequestOptions<T_RequestOptions>;
+	_opts: FetchLikeOptions<T_RequestOptions>;
 	_fetch: FetchLike<T_RequestOptions>;
 
 	_then(
@@ -51,7 +51,7 @@ export const createResponsePromise = <
 >(
 	fetch: FetchLike<T_RequestOptions>,
 	url: URL,
-	opts: RequestOptions<T_RequestOptions>,
+	opts: FetchLikeOptions<T_RequestOptions>,
 	resolvers?: T_Resolvers,
 ): ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers => {
 	return {

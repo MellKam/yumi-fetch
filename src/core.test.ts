@@ -1,4 +1,4 @@
-import { createResponsePromise, FetchLike, RequestOptions } from "./core.ts";
+import { createResponsePromise, FetchLike, FetchLikeOptions } from "./core.ts";
 import { assertSpyCall, assertSpyCalls, spy } from "std/testing/mock.ts";
 import { assert, assertInstanceOf } from "std/testing/asserts.ts";
 
@@ -10,7 +10,7 @@ Deno.test("createResponsePromise", async () => {
 		},
 	);
 	const url = new URL("https://example.com/api");
-	const opts: RequestOptions = { headers: new Headers() };
+	const opts: FetchLikeOptions = { headers: new Headers() };
 
 	{
 		const promise = createResponsePromise(fetch, url, opts);
@@ -42,7 +42,7 @@ Deno.test("createResponsePromise #2", async () => {
 		},
 	);
 	const url = new URL("https://example.com/api");
-	const opts: RequestOptions = { headers: new Headers() };
+	const opts: FetchLikeOptions = { headers: new Headers() };
 
 	const onFinally = spy();
 	const onRejected = spy();
@@ -69,7 +69,7 @@ Deno.test("createResponsePromise #3", async () => {
 		},
 	);
 	const url = new URL("https://example.com/api");
-	const opts: RequestOptions = { headers: new Headers() };
+	const opts: FetchLikeOptions = { headers: new Headers() };
 
 	const _onFulfilled = spy<any, any, Promise<Response>>();
 	const _onRejected = spy<any, any, Promise<Response>>(() => {

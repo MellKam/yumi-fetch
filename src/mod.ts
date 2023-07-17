@@ -10,14 +10,14 @@ import {
 	querySerializer,
 } from "./plugins/mod.ts";
 
-export type BaseClientSelf = HTTPMethods<DefaultMethods>;
-export type BaseClientRequestOptions = { query: QueryParams } & {
+export type BaseSelf = HTTPMethods<DefaultMethods>;
+export type BaseRequestOptions = { query: QueryParams } & {
 	json: unknown;
 };
-export type BaseClientResolvers = BodyResolvers<unknown>;
+export type BaseResolvers = BodyResolvers<unknown>;
 export type BaseClient =
-	& Client<BaseClientSelf, BaseClientRequestOptions, BaseClientResolvers>
-	& BaseClientSelf;
+	& Client<BaseSelf, BaseRequestOptions, BaseResolvers>
+	& BaseSelf;
 
 /**
  * The default client, which we recommend, comes with several essential plugins that can greatly simplify your work.
@@ -34,9 +34,9 @@ export {
 	clientCore,
 	type ClientPlugin,
 	type FetchLike,
+	type FetchLikeOptions,
 	type FetchMiddleware,
 	type HTTPErrorCreator,
-	type RequestOptions,
 	type ResponsePromise,
 } from "./core.ts";
 export * from "./http_error.ts";

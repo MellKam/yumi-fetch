@@ -1,4 +1,4 @@
-import { Client, ClientPlugin, RequestOptions } from "../../core.ts";
+import { Client, ClientPlugin, FetchLikeOptions } from "../../core.ts";
 
 export type RetryUntil = (
 	res?: Response,
@@ -7,7 +7,7 @@ export type RetryUntil = (
 
 export type RetryData<T_RequestOptions> = {
 	readonly url: URL;
-	readonly options: RequestOptions<T_RequestOptions>;
+	readonly options: FetchLikeOptions<T_RequestOptions>;
 	readonly res?: Response;
 	readonly error?: unknown;
 	readonly attemptsMade: number;

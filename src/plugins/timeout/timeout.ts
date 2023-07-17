@@ -1,7 +1,7 @@
 import {
 	Client,
 	ClientPlugin,
-	RequestOptions,
+	FetchLikeOptions,
 	ResponsePromise,
 } from "../../core.ts";
 
@@ -18,7 +18,7 @@ class TimeoutError extends Error {
 
 export type OnTimeout<T_RequestOptions = unknown> = (
 	url: URL,
-	opts: RequestOptions<T_RequestOptions>,
+	opts: FetchLikeOptions<T_RequestOptions>,
 	err: TimeoutError,
 ) => void;
 
@@ -35,7 +35,7 @@ interface TimeoutResolver {
 		this: ResponsePromise<T_RequestOptions, T_Resolvers> & T_Resolvers,
 		callback: (
 			url: URL,
-			opts: RequestOptions<T_RequestOptions>,
+			opts: FetchLikeOptions<T_RequestOptions>,
 			err: TimeoutError,
 		) => void,
 	): this;

@@ -15,11 +15,9 @@ type Todos = {
 	limit: number;
 };
 
-const client = yumi.withBaseURL("https://dummyjson.com/");
-
 const getTodos = async () => {
-	return client
-		.get("/todos", { query: { limit: 10 } })
+	return yumi
+		.get("https://dummyjson.com/todos", { query: { limit: 10 } })
 		.json<Todos>();
 };
 
