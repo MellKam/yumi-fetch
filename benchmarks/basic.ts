@@ -67,11 +67,11 @@ Deno.bench("wretch", async () => {
 		.json<Post>();
 });
 
-// --------- Yumi ---------
+// --------- Yumi (beta) ---------
 
-import { yumi } from "../src/mod.ts";
+import { yumi } from "https://deno.land/x/yumi@v0.3.0/mod.ts";
 
-Deno.bench("yumi-fetch", async () => {
+Deno.bench("yumi-fetch (beta)", async () => {
 	const client = yumi
 		.withBaseURL("https://jsonplaceholder.typicode.com/")
 		.withHeaders({ hello: "world" });
@@ -153,5 +153,26 @@ Deno.bench("ofetch", async () => {
 			userId: 2,
 		},
 		method: "POST",
+	});
+});
+
+// --------- yumi-fetch (v1) ---------
+
+import { createClient } from "../src/mod.ts";
+
+Deno.bench("yumi-fetch (v1)", async () => {
+	const client = createClient({
+		baseUrl: "https://jsonplaceholder.typicode.com",
+		headers: { hello: "world" },
+	});
+
+	const post = await client.fetch("/posts", {
+		body: {
+			title: "foo",
+			body: "safasdd",
+			userId: 2,
+		},
+		method: "POST",
+		parseAs: "json"
 	});
 });

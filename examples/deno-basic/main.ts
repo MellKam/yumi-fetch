@@ -1,35 +1,60 @@
-import { yumi } from "../../src/mod.ts";
+import { createClient, FetchError, ExtractParams } from "../../src/mod.ts";
+import { z, ZodError } from "npm:zod";
 
-type Todo = {
-	id: number;
-	todo: string;
-	completed: boolean;
-	userId: number;
-};
+const client = createClient({
+	baseUrl: "https://dummyjson.com",
+});
 
-type Todos = {
-	todos: Todo[];
-	total: number;
-	skip: number;
-	limit: number;
-};
+const todoSchema = z.object({
+	id: z.number(),
+	todo: z.string(),
+	completed: z.boolean(),
+	userId: z.number(),
+});
 
-const client = yumi.withBaseURL("https://dummyjson.com/");
+const todosSchema = z.object({
+	todos: z.array(todoSchema),
+	total: z.number(),
+	skip: z.number(),
+	limit: z.number(),
+});
 
-const { todos } = await client
-	.get("/todos", { query: { limit: 2 } })
-	.json<Todos>();
+try {
+	const data = await client.fetch("/todos", {
+		query: { limit: 3 },
+		parseAs: "json",
+	});
 
-console.log(todos);
+	const todos = todosSchema.parse(data);
+	console.log(todos);
+} catch (error) {
+	if (error instanceof FetchError) {
+		console.error(error);
+	} else if (error instanceof ZodError) {
+		console.error(...error.format()._errors);
+	} else {
+		console.error("Some tricky error:", error);
+	}
+}
 
-const createdTodo = await client
-	.post("/todos/add", {
-		json: {
-			todo: "Star Yumi-Fetch repository",
-			completed: false,
-			userId: 5,
-		},
-	})
-	.json<Todo>();
+const getTodo = async (options: ExtractParams<"/todos/{id}">) => {
+	const data = await client.fetch("/todos/{id}", {
+		params: options,
+		parseAs: "json",
+	});
 
-console.log(createdTodo);
+	return todoSchema.parse(data);
+}
+
+try {
+	const todo = await getTodo({ id: 2 });
+	console.log(todo);
+} catch (error) {
+	if (error instanceof FetchError) {
+		console.error(error);
+	} else if (error instanceof ZodError) {
+		console.error(...error.format()._errors);
+	} else {
+		console.error("Some tricky error:", error);
+	}
+}
