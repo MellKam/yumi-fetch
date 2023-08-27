@@ -19,7 +19,7 @@ export class FetchError<TBody = unknown> extends Error implements HttpError {
 		request: Request,
 		response: Response,
 		body: TBody,
-		options?: ErrorOptions,
+		options?: ErrorOptions
 	) {
 		super(message, options);
 		this.request = request;
@@ -36,7 +36,7 @@ export class FetchError<TBody = unknown> extends Error implements HttpError {
 const createFetchError = async <TBody = unknown>(
 	request: Request,
 	response: Response,
-	options?: ErrorOptions,
+	options?: ErrorOptions
 ) => {
 	const message = response.statusText
 		? `${response.status} ${response.statusText} (${request.url})`
@@ -44,17 +44,11 @@ const createFetchError = async <TBody = unknown>(
 	let body: TBody = null as TBody;
 
 	if (!response.body || response.type === "opaque") {
-		return new FetchError<TBody>(
-			message,
-			request,
-			response,
-			body,
-			options,
-		);
+		return new FetchError<TBody>(message, request, response, body, options);
 	}
 
 	try {
-		body = await response.text() as TBody;
+		body = (await response.text()) as TBody;
 		const contentType = response.headers.get("Content-Type");
 
 		if (
@@ -83,7 +77,8 @@ export type QueryParams = {
 const mergeURLs = (url: string, base?: URL | string): URL => {
 	if (base) {
 		const result = new URL(base);
-		result.pathname += (result.pathname.endsWith("/") ? "" : "/") +
+		result.pathname +=
+			(result.pathname.endsWith("/") ? "" : "/") +
 			(url.startsWith("/") ? url.slice(1) : url);
 
 		return result;
@@ -97,7 +92,7 @@ type IsEmptyObject<T> = keyof T extends never ? true : false;
 export type ExtractParams<
 	T extends string,
 	// deno-lint-ignore ban-types
-	Params extends Record<string, string | number> = {},
+	Params extends Record<string, string | number> = {}
 > = T extends `${infer _Start}{${infer Param}}${infer Rest}`
 	? ExtractParams<Rest, Params & { [K in Param]: string | number }>
 	: Params;
@@ -135,8 +130,11 @@ type ResponseBodyParsedMap = {
 };
 
 const isPlainObject = (obj: unknown): obj is Record<PropertyKey, unknown> => {
-	return typeof obj === "object" && obj !== null &&
-		Object.prototype.toString.call(obj) === "[object Object]";
+	return (
+		typeof obj === "object" &&
+		obj !== null &&
+		Object.prototype.toString.call(obj) === "[object Object]"
+	);
 };
 
 type FetchLike = (
@@ -144,15 +142,18 @@ type FetchLike = (
 	options: Omit<RequestInit, "body"> & {
 		headers: Headers;
 		body?: BodyInit | null | Record<string, unknown>;
-	},
+	}
 ) => Promise<Response>;
 export type Middleware = (next: FetchLike) => FetchLike;
 
-export type ClientOptions = {
+export type ClientOptions<
+	TParseMethod extends ResponseBodyParseMethod | undefined = undefined
+> = {
 	baseUrl?: URL | string;
 	querySerializer?: (query: QueryParams) => string;
 	jsonSerializer?: (json: unknown) => string;
 	middlewares?: Middleware[];
+	parseAs?: TParseMethod;
 } & Omit<RequestInit, "body" | "method">;
 
 const defaultQuerySerializer = (query: QueryParams) => {
@@ -164,7 +165,11 @@ const defaultQuerySerializer = (query: QueryParams) => {
 	return searchParams.toString();
 };
 
-export const createClient = (clientOptions?: ClientOptions) => {
+export const createClient = <
+	CParseMethod extends ResponseBodyParseMethod | undefined = undefined
+>(
+	clientOptions?: ClientOptions<CParseMethod>
+) => {
 	const {
 		baseUrl,
 		headers = {},
@@ -183,29 +188,26 @@ export const createClient = (clientOptions?: ClientOptions) => {
 		_jsonSerializer: jsonSerializer,
 		async fetch<
 			TResource extends string = string,
-			TParseMethod extends ResponseBodyParseMethod | undefined = undefined,
+			TParseMethod extends ResponseBodyParseMethod | undefined = CParseMethod
 		>(
 			resource: TResource,
-			...args: IsEmptyObject<ExtractParams<TResource>> extends true ? [
-					options?:
-						& Omit<RequestInit, "body">
-						& {
+			...args: IsEmptyObject<ExtractParams<TResource>> extends true
+				? [
+						options?: Omit<RequestInit, "body"> & {
 							body?: BodyInit | null | Record<string, unknown>;
 							query?: QueryParams;
 							parseAs?: TParseMethod;
 							params?: undefined;
-						},
-				]
+						}
+				  ]
 				: [
-					options:
-						& Omit<RequestInit, "body">
-						& {
+						options: Omit<RequestInit, "body"> & {
 							body?: BodyInit | null | Record<string, unknown>;
 							query?: QueryParams;
 							parseAs?: TParseMethod;
 							params: ExtractParams<TResource>;
-						},
-				]
+						}
+				  ]
 		): Promise<
 			TParseMethod extends ResponseBodyParseMethod
 				? ResponseBodyParsedMap[TParseMethod]
@@ -218,9 +220,11 @@ export const createClient = (clientOptions?: ClientOptions) => {
 				for (const key in options.params) {
 					_resource = _resource.replace(
 						`{${key}}`,
-						(options.params[key as keyof typeof options.params] as
-							| string
-							| number).toString(),
+						(
+							options.params[key as keyof typeof options.params] as
+								| string
+								| number
+						).toString()
 					);
 				}
 			}
@@ -235,8 +239,9 @@ export const createClient = (clientOptions?: ClientOptions) => {
 				headers.set("Accept", CONTENT_TYPES[options.parseAs]);
 			}
 
-			const isJSON = !!options.body && (Array.isArray(options.body) ||
-				isPlainObject(options.body));
+			const isJSON =
+				!!options.body &&
+				(Array.isArray(options.body) || isPlainObject(options.body));
 
 			if (isJSON) {
 				headers.set("Content-Type", CONTENT_TYPES.json);
@@ -246,14 +251,14 @@ export const createClient = (clientOptions?: ClientOptions) => {
 				...this._options,
 				...options,
 				headers,
-				body: (isJSON ? this._jsonSerializer(options.body) : options.body) as
-					| BodyInit
-					| null,
+				body: (isJSON
+					? this._jsonSerializer(options.body)
+					: options.body) as BodyInit | null,
 			};
 
 			const res = await this._middlewares.reduceRight(
 				(next, mw) => mw(next),
-				fetch as FetchLike,
+				fetch as FetchLike
 			)(url, _options);
 
 			if (!res.ok) {
@@ -268,4 +273,6 @@ export const createClient = (clientOptions?: ClientOptions) => {
 	};
 };
 
-export type Client = ReturnType<typeof createClient>;
+export type Client<
+	CParseMethod extends ResponseBodyParseMethod | undefined = undefined
+> = ReturnType<typeof createClient<CParseMethod>>;

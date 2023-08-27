@@ -8,6 +8,7 @@
 		"tsx": "3.12.7"
 	},
 	"dependencies": {
-		"yumi-fetch": "workspace:*"
+		"yumi-fetch": "workspace:*",
+		"zod": "3.22.2"
 	}
 }

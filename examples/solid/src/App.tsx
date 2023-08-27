@@ -1,5 +1,5 @@
 import { createResource, ErrorBoundary, For, Show } from "solid-js";
-import { yumi } from "yumi-fetch";
+import { createClient } from "yumi-fetch";
 
 type Todo = {
 	id: number;
@@ -15,10 +15,15 @@ type Todos = {
 	limit: number;
 };
 
+const client = createClient({
+	baseUrl: "https://dummyjson.com",
+});
+
 const getTodos = async () => {
-	return yumi
-		.get("https://dummyjson.com/todos", { query: { limit: 10 } })
-		.json<Todos>();
+	return (await client.fetch("/todos", {
+		query: { limit: 10 },
+		parseAs: "json",
+	})) as Todos;
 };
 
 export const App = () => {
@@ -33,8 +38,7 @@ export const App = () => {
 							{(todo) => (
 								<li>
 									{todo.id} [{todo.completed ? "COMPLETED" : "IN PROCESS"}]{" "}
-									{todo.todo}
-									{" "}
+									{todo.todo}{" "}
 								</li>
 							)}
 						</For>

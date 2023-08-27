@@ -13,7 +13,7 @@
 		"declaration": true,
 		"strict": true,
 		"removeComments": false,
-		"lib": ["DOM", "ESNext", "DOM.Iterable"],
+		"lib": ["DOM", "ESNext", "DOM.Iterable", "ES2022.error"],
 		"noUnusedLocals": true,
 		"moduleResolution": "NodeNext",
 		"module": "ESNext",
@@ -26,6 +26,6 @@
 		"allowUnusedLabels": false,
 		"useDefineForClassFields": false
 	},
-	"include": ["./src/**/*.ts"],
+	"include": ["./src/**/*.ts", "./dist/**/*.d.ts"],
 	"exclude": ["node_modules", "./src/**/*.demo.ts", "./src/**/*.test.ts"]
 }
