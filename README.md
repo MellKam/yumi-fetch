@@ -48,8 +48,6 @@
 
 # Installation
 
-This package works with various JavaScript runtimes, utilizing the Fetch API available in most modern environments. It supports web browsers, Node.js (v17.5 and above), and older Node.js versions when using a package like [node-fetch](https://github.com/node-fetch/node-fetch). It is also compatible with Deno, Bun, and other runtimes supporting the Fetch API.
-
 ## [npmjs.com](https://www.npmjs.com/package/yumi-fetch)
 
 ```bash
@@ -60,127 +58,60 @@ npm i yumi-fetch
 
 ```html
 <script type="module">
-import { yumi } from "https://unpkg.com/yumi-fetch/dist/mod.js";
+import { ... } from "https://unpkg.com/yumi-fetch/dist/mod.js";
 </script>
 ```
 
 ## [deno.land](https://deno.land/x/yumi)
 
 ```ts
-import { yumi } from "https://deno.land/x/yumi/mod.ts";
+import { ... } from "https://deno.land/x/yumi/mod.ts";
 ```
 
 # Getting started
 
 ```ts
-import { yumi } from "yumi-fetch";
+import { createClient, FetchError } from "yumi-fetch";
+import { z, ZodError } from "zod";
 
-const client = yumi.withBaseURL("https://dummyjson.com/");
+const client = createClient({
+	baseUrl: "https://dummyjson.com",
+});
 
-type Todo = {
-  id: number;
-  todo: string;
-  completed: boolean;
-  userId: number;
-};
+const todoSchema = z.object({
+	id: z.number(),
+	todo: z.string(),
+	completed: z.boolean(),
+	userId: z.number(),
+});
 
-type Todos = {
-  todos: Todo[];
-  total: number;
-  skip: number;
-  limit: number;
-};
+const todosSchema = z.object({
+	todos: z.array(todoSchema),
+	total: z.number(),
+	skip: z.number(),
+	limit: z.number(),
+});
 
-const { todos } = await client
-  .get("/todos", { query: { limit: 2 } })
-  .json<Todos>();
+try {
+	const data = await client.fetch("/todos", {
+		query: { limit: 3 },
+		parseAs: "json",
+	});
 
-console.log(todos);
-
-const createdTodo = await client
-  .post("/todos/add", {
-    json: {
-      todo: "Star Yumi-Fetch repository",
-      completed: false,
-      userId: 5,
-    },
-  })
-  .json<Todo>();
-
-console.log(createdTodo);
+	const todos = todosSchema.parse(data);
+	console.log(todos);
+} catch (error) {
+	if (error instanceof FetchError) {
+    // handle fetch error
+		console.error(error);
+	} else if (error instanceof ZodError) {
+    // handle validation error
+		console.error(...error.format()._errors);
+	} else {
+		console.error("Some tricky error:", error);
+	}
+}
 ```
-
-Here you can find a straightforward API that is similar to the `fetch` function but with several notable improvements. You may be familiar with these features from libraries like `axios`, etc.. Firstly, it includes functions named after HTTP methods, such as `.post()` and `.get()`, which make it more intuitive and convenient to perform these actions. Additionally, the API provides simplified serialization capabilities and includes a `.json()` resolver for easy handling of JSON data.
-
-<details>
-  <summary>For comparison, here's a code snippet using the plain fetch function</summary>
-  
-  ```ts
-  type Todo = {
-    id: number;
-    todo: string;
-    completed: boolean;
-    userId: number;
-  };
-
-  type Todos = {
-    todos: Todo[];
-    total: number;
-    skip: number;
-    limit: number;
-  };
-
-  const res = await fetch("https://dummyjson.com/todos?limit=2", 
-    { 
-      headers: { "Accept": "application/json" } 
-    }
-  );
-  if (!res.ok) throw new Error(await res.text());
-  const { todos } = (await res.json()) as Todos;
-
-  console.log(todos);
-
-  const res2 = await fetch("https://dummyjson.com/todos/add", 
-    { 
-      method: "POST",
-      headers: { 
-        "Accept": "application/json", 
-        "Content-Type": "application/json" 
-      },
-      body: JSON.stringify({
-        todo: "Star Yumi-Fetch repository",
-        completed: false,
-        userId: 5,
-      }) 
-    }
-  );
-
-  if (!res2.ok) throw new Error(await res.text());
-  const createdTodo = (await res2.json()) as Todo;
-
-  console.log(createdTodo);
-  ```
-</details>
-
-__Imagine a scenario where I told you that all these incredible features can be easily attached to your client as modular plug-ins, allowing you to effortlessly expand its functionality. Well, guess what? It's absolutely true!__
-
-The `yumi` object we imported is essentially a client that has been enhanced with custom modifications on top of it.
-
-```ts
-import { clientCore, /* ... */ } from "yumi-fetch";
-
-export const yumi = clientCore
-  // adds http methods like .get(), .post(), .put() ...
-  .withProperties(httpMethods()) 
-  // adds response resolvers .json(), .text(), .formData() ...
-  .withResolvers(bodyResolvers())
-  // adds query serialization
-  .withPlugin(query())
-  // adds json serialization
-  .withPlugin(json());
-```
-
-The beauty of this approach is that all these plug-ins seamlessly modify the client type, making it a breeze to work with TypeScript. By composing these plug-ins together, you can create a powerful and flexible client that meets your specific needs.
 
 # Bundle size comparison
 
@@ -196,23 +127,25 @@ The beauty of this approach is that all these plug-ins seamlessly modify the cli
 # Benchmark comparison
 
 ```bash
-cpu: Apple M1
-runtime: deno 1.35.0 (aarch64-apple-darwin)
+cpu: AMD Ryzen 5 2600 Six-Core Processor
+runtime: deno 1.36.3 (x86_64-unknown-linux-gnu)
 
-benchmark       time (avg)             (min … max)       p75       p99      p995
--------------------------------------------------- -----------------------------
-fetch           72.39 µs/iter  (60.75 µs … 714.62 µs)  72.46 µs 204.96 µs 307.29 µs
-wretch           77.1 µs/iter    (67.92 µs … 1.02 ms)  76.92 µs 109.83 µs 286.46 µs
-yumi-fetch      87.31 µs/iter    (75.04 µs … 1.05 ms)  87.08 µs 131.83 µs 277.79 µs
-ky             156.34 µs/iter   (121.21 µs … 2.28 ms)  151.5 µs 534.71 µs   1.22 ms
-ya-fetch        89.77 µs/iter    (76.38 µs … 1.75 ms)  88.79 µs 144.62 µs 317.83 µs
-ofetch          77.51 µs/iter  (68.33 µs … 977.96 µs)   76.5 µs 150.96 µs 197.71 µs
+benchmark              time (avg)        iter/s             (min … max)       p75       p99      p995
+----------------------------------------------------------------------- -----------------------------
+fetch                 187.96 µs/iter       5,320.2   (153.26 µs … 1.16 ms) 189.61 µs 392.14 µs 718.29 µs
+wretch                195.78 µs/iter       5,107.7    (172.36 µs … 1.9 ms) 192.85 µs 425.55 µs 735.96 µs
+yumi-fetch (beta)     223.35 µs/iter       4,477.2   (192.52 µs … 2.52 ms) 216.04 µs 358.35 µs   1.21 ms
+ky                    539.36 µs/iter       1,854.0   (436.39 µs … 2.89 ms) 547.88 µs 951.98 µs   2.56 ms
+ya-fetch              272.85 µs/iter       3,665.0   (224.03 µs … 3.83 ms) 270.14 µs  546.3 µs  768.3 µs
+ofetch                203.97 µs/iter       4,902.8    (181.02 µs … 3.3 ms) 199.03 µs 301.79 µs 362.33 µs
+yumi-fetch (v1)       187.41 µs/iter       5,335.8   (170.22 µs … 1.29 ms) 183.05 µs 279.73 µs 300.53 µs
 
 summary
   fetch
-   1.07x faster than wretch
-   1.07x faster than ofetch
-   1.21x faster than yumi-fetch
-   1.24x faster than ya-fetch
-   2.16x faster than ky
+   1x slower than yumi-fetch (v1)
+   1.04x faster than wretch
+   1.09x faster than ofetch
+   1.19x faster than yumi-fetch (beta)
+   1.45x faster than ya-fetch
+   2.87x faster than ky
 ```
