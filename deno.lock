@@ -47,7 +47,7 @@
       "axios": "axios@1.4.0",
       "got": "got@12.6.0",
       "ky": "ky@0.33.3",
-      "ofetch": "ofetch@1.1.1",
+      "ofetch": "ofetch@1.3.3",
       "openapi-fetch": "openapi-fetch@0.7.4",
       "openapi-typescript": "openapi-typescript@6.5.2",
       "openapi-typescript-helpers": "openapi-typescript-helpers@0.0.1",
@@ -250,6 +250,10 @@
         "integrity": "sha512-FJ9RDpf3GicEBvzI3jxc2XhHzbqD8p4ANw/1kPsFBfTvP1b7Gn/Lg1vO7R9J4IVgoMbyUmFrFGZafJ1hPZpvlg==",
         "dependencies": {}
       },
+      "destr@2.0.1": {
+        "integrity": "sha512-M1Ob1zPSIvlARiJUkKqvAZ3VAqQY6Jcuth/pBKQ2b1dX/Qx0OnJ8Vux6J2H5PTMQeRzWrrbTu70VxBfv/OPDJA==",
+        "dependencies": {}
+      },
       "esbuild@0.17.19": {
         "integrity": "sha512-XQ0jAPFkK/u3LcVRcvVHQcTIqD6E2H1fvZMA5dQPSOWb3suUbWbfbRf94pjc0bNzRYLfIrDRQXr7X+LHIm5oHw==",
         "dependencies": {
@@ -431,6 +435,10 @@
         "integrity": "sha512-5IAMBTl9p6PaAjYCnMv5FmqIF6GcZnawAVnzaCG0rX2aYZJ4CxEkZNtVPuTRug7fL7wyM5BQYTlAzcyMPi6oTQ==",
         "dependencies": {}
       },
+      "node-fetch-native@1.4.0": {
+        "integrity": "sha512-F5kfEj95kX8tkDhUCYdV8dg3/8Olx/94zB8+ZNthFs6Bz31UpUi8Xh40TN3thLwXgrwXry1pEg9lJ++tLWTcqA==",
+        "dependencies": {}
+      },
       "normalize-url@8.0.0": {
         "integrity": "sha512-uVFpKhj5MheNBJRTiMZ9pE/7hD1QTeEvugSJW/OmLzAp78PB5O6adfMNTvmfKhXBkvCzC+rqifWcVYpGFwTjnw==",
         "dependencies": {}
@@ -441,6 +449,14 @@
           "destr": "destr@2.0.0",
           "node-fetch-native": "node-fetch-native@1.2.0",
           "ufo": "ufo@1.1.2"
+        }
+      },
+      "ofetch@1.3.3": {
+        "integrity": "sha512-s1ZCMmQWXy4b5K/TW9i/DtiN8Ku+xCiHcjQ6/J/nDdssirrQNOoB165Zu8EqLMA2lln1JUth9a0aW9Ap2ctrUg==",
+        "dependencies": {
+          "destr": "destr@2.0.1",
+          "node-fetch-native": "node-fetch-native@1.4.0",
+          "ufo": "ufo@1.3.0"
         }
       },
       "openapi-fetch@0.7.4": {
@@ -546,6 +562,10 @@
       },
       "ufo@1.1.2": {
         "integrity": "sha512-TrY6DsjTQQgyS3E3dBaOXf0TpPD8u9FVrVYmKVegJuFw51n/YB9XPt+U6ydzFG5ZIN7+DIjPbNmXoBj9esYhgQ==",
+        "dependencies": {}
+      },
+      "ufo@1.3.0": {
+        "integrity": "sha512-bRn3CsoojyNStCZe0BG0Mt4Nr/4KF+rhFlnNXybgqt5pXHNFRlqinSoQaTrGyzE4X8aHplSb+TorH+COin9Yxw==",
         "dependencies": {}
       },
       "undici@5.23.0": {

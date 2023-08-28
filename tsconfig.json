@@ -26,6 +26,6 @@
 		"allowUnusedLabels": false,
 		"useDefineForClassFields": false
 	},
-	"include": ["./src/**/*.ts", "./dist/**/*.d.ts"],
-	"exclude": ["node_modules", "./src/**/*.demo.ts", "./src/**/*.test.ts"]
+	"include": ["./src/**/*.ts"],
+	"exclude": ["node_modules"]
 }

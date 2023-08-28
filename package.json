@@ -1,66 +1,55 @@
 {
-  "name": "yumi-fetch",
-  "version": "0.3.0",
-  "description": "🍭 An extensible fetch wrapper for simplified and powerful HTTP requests using native web APIs",
-  "main": "dist/index.cjs",
-  "module": "dist/index.js",
-  "types": "dist/mod.d.ts",
-  "type": "module",
-  "files": [
-    "dist/",
-    "src/",
-    "package.json",
-    "README.md",
-    "LICENSE"
-  ],
-  "author": {
-    "name": "Artem Melnyk",
-    "url": "https://github.com/MellKam"
-  },
-  "sideEffects": false,
-  "exports": {
-    ".": {
-      "default": "./dist/mod.js",
-      "import": "./dist/mod.js",
-      "require": "./dist/mod.cjs",
-      "types": "./dist/mod.d.ts"
-    },
-    "./plugins": {
-      "default": "./dist/plugins.js",
-      "import": "./dist/plugins.js",
-      "require": "./dist/plugins.cjs",
-      "types": "./dist/plugins/mod.d.ts"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "index": [
-        "./dist/mod.d.ts"
-      ],
-      "plugins": [
-        "./dist/plugins/mod.d.ts"
-      ]
-    }
-  },
-  "license": "MIT",
-  "repository": "github:MellKam/yumi-fetch",
-  "readme": "https://github.com/MellKam/yumi-fetch#readme",
-  "homepage": "https://github.com/MellKam/yumi-fetch#readme",
-  "bugs": {
-    "url": "https://github.com/MellKam/yumi-fetch/issues"
-  },
-  "keywords": [
-    "fetch",
-    "client",
-    "request",
-    "response",
-    "yumi",
-    "api",
-    "rest",
-    "http",
-    "network",
-    "middleware",
-    "extensible",
-    "plugin"
-  ]
+	"name": "yumi-fetch",
+	"version": "0.3.0",
+	"description": "🍭 An extensible fetch wrapper for simplified and powerful HTTP requests using native web APIs",
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "dist/mod.d.ts",
+	"type": "module",
+	"files": [
+		"dist/",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
+	"author": {
+		"name": "Artem Melnyk",
+		"url": "https://github.com/MellKam"
+	},
+	"sideEffects": false,
+	"exports": {
+		".": {
+			"default": "./dist/mod.js",
+			"import": "./dist/mod.js",
+			"require": "./dist/mod.cjs",
+			"types": "./dist/mod.d.ts"
+		}
+	},
+	"typesVersions": {
+		"*": {
+			"index": [
+				"./dist/mod.d.ts"
+			]
+		}
+	},
+	"license": "MIT",
+	"repository": "github:MellKam/yumi-fetch",
+	"readme": "https://github.com/MellKam/yumi-fetch#readme",
+	"homepage": "https://github.com/MellKam/yumi-fetch#readme",
+	"bugs": {
+		"url": "https://github.com/MellKam/yumi-fetch/issues"
+	},
+	"keywords": [
+		"fetch",
+		"client",
+		"request",
+		"response",
+		"yumi",
+		"api",
+		"rest",
+		"http",
+		"network",
+		"middleware",
+		"plugin"
+	]
 }

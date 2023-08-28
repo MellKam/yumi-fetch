@@ -173,6 +173,6 @@ Deno.bench("yumi-fetch (v1)", async () => {
 			userId: 2,
 		},
 		method: "POST",
-		parseAs: "json"
+		parseAs: "json",
 	});
 });

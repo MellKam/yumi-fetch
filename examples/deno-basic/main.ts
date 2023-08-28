@@ -1,4 +1,4 @@
-import { createClient, FetchError, ExtractParams } from "../../src/mod.ts";
+import { createClient, FetchError, ExtractParams, FetcherOptions } from "../../src/mod.ts";
 import { z, ZodError } from "npm:zod";
 
 const client = createClient({
@@ -11,6 +11,17 @@ const todoSchema = z.object({
 	completed: z.boolean(),
 	userId: z.number(),
 });
+
+const getTodo = async (options: FetcherOptions<{
+	path: "/todos/{id}",
+}>) => {
+	const data = await client.fetch("/todos/{id}", {
+		...options,
+		parseAs: "json",
+	});
+
+	return todoSchema.parse(data);
+};
 
 const todosSchema = z.object({
 	todos: z.array(todoSchema),
@@ -37,17 +48,8 @@ try {
 	}
 }
 
-const getTodo = async (options: ExtractParams<"/todos/{id}">) => {
-	const data = await client.fetch("/todos/{id}", {
-		params: options,
-		parseAs: "json",
-	});
-
-	return todoSchema.parse(data);
-}
-
 try {
-	const todo = await getTodo({ id: 2 });
+	const todo = await getTodo({ params: { id: 8 } });
 	console.log(todo);
 } catch (error) {
 	if (error instanceof FetchError) {
